@@ -14,13 +14,17 @@ pilotfish is a global multi-model orchestration layer for Claude Code. It touche
 
 Source of truth for the files: the [templates/](../templates/) directory of this repository. If you are running inside a local clone, use those files directly; otherwise fetch each from `https://raw.githubusercontent.com/Nanako0129/pilotfish/main/templates/...`.
 
+> ⚠️ **Commit pinning:** If the user's install prompt referenced this runbook at a specific commit SHA instead of `main`, fetch **every template from that same SHA** — never fall back to `main`. The point of pinning is that what the user reviewed is exactly what gets installed.
+
+> **Portability:** Prefer your own Read / Write / Edit tools over shell commands for all file operations — they behave identically on macOS, Linux, WSL, and native Windows. The bash snippets below are references, not requirements: on native Windows (PowerShell, no Git Bash) they will not run — create directories and copy backups with your file tools, count markers by reading the file, and if `jq` is unavailable validate JSON by parsing it yourself.
+
 ## Step 1 — Preflight (read-only)
 
 Gather the current state before proposing anything:
 
 1. Read `~/.claude/settings.json` (note the current `model`, and whether `fallbackModel` / `availableModels` exist). If the file is missing, you will create a minimal one.
 2. Read `~/.claude/CLAUDE.md` if it exists. Check for existing `<!-- pilotfish:begin -->` / `<!-- pilotfish:end -->` markers — their presence means this is an **upgrade**, not a fresh install.
-3. List `~/.claude/agents/` and note which of the six pilotfish filenames already exist.
+3. List `~/.claude/agents/` and note which of the six pilotfish filenames already exist. **Also read the `name:` frontmatter of every existing agent file (any filename)** — Claude Code resolves collisions by the `name` field, not the filename, and loads only one definition per name. If any existing agent already declares `name: scout`, `executor`, `mech-executor`, `verifier`, `security-executor`, or `Explore`, flag it as a name collision in the plan and ask the user whether to rename theirs, skip that pilotfish role, or overwrite. Likewise note any enabled **plugin** that ships agents with these names — a user-level file shadows the plugin's version (still reachable via its scoped `plugin:name`).
 4. Check whether the environment variable `CLAUDE_CODE_SUBAGENT_MODEL` is set (`echo "$CLAUDE_CODE_SUBAGENT_MODEL"`).
 
 > ⚠️ **Warning:** If `CLAUDE_CODE_SUBAGENT_MODEL` is set, it silently overrides every per-agent `model` frontmatter and defeats the entire tiering design. Flag it in your plan and recommend unsetting it. Do not unset it yourself without approval.
@@ -64,9 +68,10 @@ For each of the six files in `templates/agents/`, write it to `~/.claude/agents/
 
 | Existing state | Action |
 |---|---|
-| File doesn't exist | Write it |
+| File doesn't exist, no `name:` collision (Step 1.3) | Write it |
 | File exists, identical content | Skip (report as up-to-date) |
 | File exists, different content | Show the diff, ask: overwrite (upgrade) or keep theirs |
+| A *different* file declares the same `name:` | Stop and ask (see Step 1.3) — never install a second file with a duplicate `name` |
 
 > **Note:** A user-level agent named `Explore` intentionally shadows Claude Code's built-in Explore subagent to pin exploration to Haiku. This is expected, not a conflict.
 
