@@ -1,0 +1,4 @@
+{
+  "model": "best[1m]",
+  "fallbackModel": ["opus", "sonnet"]
+}

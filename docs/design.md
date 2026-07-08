@@ -1,0 +1,88 @@
+# pilotfish — Design Rationale
+
+## Purpose
+
+This document explains *why* pilotfish is shaped the way it is: three layers, role-based policy, aliases everywhere, effort tiers, and a verification gate. The empirical grounding (official docs, measured community numbers, subscription economics) lives in the [research report](./research.zh-TW.md); this is the argument from those facts to this design.
+
+## The three layers
+
+The core observation is that "who orchestrates", "who executes what", and "how delegation behaves" change at different rates and should therefore live in different places:
+
+| Layer | File | Changes when | Mechanism |
+|---|---|---|---|
+| Machine | `~/.claude/settings.json` | Your plan/access changes | `model: "best[1m]"` + `fallbackModel` |
+| Roles | `~/.claude/agents/*.md` | A model tier is re-pointed | One `model:` line of frontmatter per role |
+| Policy | `~/.claude/CLAUDE.md` | Your working style changes | Prose rules written against role names |
+
+CLAUDE.md cannot set the main-session model (that is a settings/`/model` concern), which turns out to be a feature: it forces the clean split where settings decide *who* orchestrates and CLAUDE.md decides *how* it delegates.
+
+## Role-based policy, model-free prose
+
+The single most important rule in pilotfish: **the policy text never names a model.** It says "delegate mechanical work to `mech-executor`", not "delegate to Sonnet". Model bindings exist in exactly one place — the frontmatter of each agent file.
+
+This is what makes the fallback story degenerate into no-ops:
+
+```mermaid
+flowchart LR
+    P["Policy (CLAUDE.md)<br>roles only"] --> R["Roles (agents/*.md)<br>model: alias"] --> A["Aliases (Claude Code)<br>track recommended versions"] --> M["Models<br>come and go"]
+```
+
+When Fable 5 left subscription plans in July 2026, a pilotfish user changed nothing: `best` re-resolved to the latest Opus, every role kept its binding, and the policy text was already model-agnostic. The same holds for the next deprecation cycle (Opus 4.8 → 4.9, Sonnet 5 → next): aliases track the recommended version by design.
+
+Three distinct failure modes get three distinct mechanisms — they are often conflated but shouldn't be:
+
+| Failure | Mechanism | Layer |
+|---|---|---|
+| Lost *access* to the frontier model | `best` alias | settings |
+| Model *overloaded / erroring* | `fallbackModel` chain | settings |
+| Model *deprecated* | aliases in role frontmatter | agents |
+
+## Why these six roles
+
+The role set is the smallest one that covers the delegation patterns that actually recur, mapped to the cheapest tier that reliably handles each:
+
+| Role | Tier argument |
+|---|---|
+| `scout`, `Explore` | Reconnaissance is the highest-volume, lowest-judgment token sink in a coding session (telemetry showed ~36% of calls were exploration even before deliberate routing). Haiku at low effort is indistinguishable in output quality here. |
+| `mech-executor` | Fully-specified work has its judgment already done — by the orchestrator, in the spec. Sonnet executes specs faithfully, and on subscriptions its consumption lands in the separate Sonnet-only weekly bucket. |
+| `executor` | Real implementation needs local design judgment; Opus is the measured sweet spot below the frontier. Notably it beats routing to the frontier even ignoring cost, because routine work doesn't benefit from Fable-tier reasoning. |
+| `verifier` | Official guidance: independent fresh-context verifiers outperform self-critique. It is read-and-run only — a verifier that fixes things stops being independent. |
+| `security-executor` | Two reasons: security work deserves consistently high effort, and the frontier model's safety classifiers can refuse benign defensive-security work mid-task. Pre-routing security to Opus makes the refusal path unreachable instead of handled. |
+
+The `Explore` override exists because Claude Code v2.1.198 changed the built-in Explore agent to inherit the main-session model — on a frontier main session, that silently upgrades your cheapest workload to your most expensive model. A same-name user-level agent shadows it.
+
+## Quality: verification over executor pedigree
+
+The intuitive objection to cheap executors is quality. pilotfish's answer is structural, not hopeful:
+
+1. The orchestrator writes complete one-shot specs (goal, constraints, done-criteria, the *why*) — most cheap-model failures are actually spec failures.
+2. Escalation is bounded: two failed attempts on a tier, then escalate or take over. No infinite cheap retries that burn more than they save.
+3. Non-trivial work passes through `verifier` — an adversarial, fresh-context pass that tries to *refute* the claimed outcome before the orchestrator reports it done.
+
+Verification is cheap relative to generation, and it converts "is the executor smart enough?" into "did the output survive an independent refutation attempt?" — a much better question.
+
+## Effort tiers
+
+Effort is the second big quota lever after model choice, and the Fable-5 generation shifted the calculus: low effort on current models routinely matches previous-generation `xhigh`. pilotfish therefore pairs every role with an effort:
+
+| Role class | Effort | Why |
+|---|---|---|
+| Recon (`scout`, `Explore`) | `low` | High volume, near-zero judgment |
+| Mechanical (`mech-executor`) | `low` | Judgment lives in the spec |
+| Judgment (`executor`, `verifier`) | `medium` | Balance point |
+| Security (`security-executor`) | `high` | Correctness over cost |
+| Main session | `high` (user setting) | Official Fable 5 guidance: `high` for most work, `xhigh` for the longest horizons only |
+
+## Deliberately left out
+
+| Not included | Why |
+|---|---|
+| Per-project configuration | The six projects audited before building this had zero model policy in their CLAUDE.md files — correctly. A single global source of truth is the whole point; project files stay pure technical notes. |
+| Enforcement hooks (spawn guards, stop guards à la fable5-orchestrator) | Powerful but heavy; policy-only works well before adding machinery. If discipline slips, hooks are the documented next step — see the research report. |
+| `CLAUDE_CODE_SUBAGENT_MODEL` | It overrides every per-agent frontmatter globally, which is precisely the opposite of tiered routing. The installer warns if it's set. |
+| Pinned model IDs | Pinning trades resilience for reproducibility; for a personal global config, resilience wins. Organizations that need pinning have `ANTHROPIC_DEFAULT_*_MODEL`. |
+| An `opusplan` default | It's a great quota-saver but changes interactive feel (model switches mid-conversation). Offered as an opt-in in the FAQ instead. |
+
+## Prompting style inside the agents
+
+The agent system prompts follow the Fable-5-generation guidance from the research: goals and constraints instead of step-by-step scaffolding, an explicit statement of what *not* to do (no scope creep, verifier never fixes), evidence-audited progress claims, and "a precise *blocked because X* is a successful outcome" to prevent guessing. When editing the templates, keep that register — prescriptive checklists measurably degrade current-generation output.
