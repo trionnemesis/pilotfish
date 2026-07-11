@@ -22,4 +22,10 @@ Delegation rules:
 - Non-trivial changes get a fresh-context `verifier` pass before you report them done; prefer that over self-review.
 - Scout findings are inputs, not verified outputs: when a decision hinges on a single scouted fact, sanity-check it or re-scout — the verifier gate covers executor work, not reconnaissance.
 - Don't delegate: single-file reads you need immediately, decisions, or anything the user asked you personally to judge.
+
+Running agents in parallel:
+
+- **Every *writing* agent in a parallel batch gets its own worktree** (`isolation: "worktree"`). Read-only roles (`scout`, `Explore`) can share the checkout; `executor` / `mech-executor` / `security-executor` cannot. Two agents in one checkout will create branches and switch under each other, interleave edits in shared files, and commit each other's work — and a temporary hack one agent left in the tree (a deliberately-broken test, a stubbed function) becomes another agent's input. Tell each agent in its prompt that it is in an isolated worktree and must never touch the main checkout.
+- **A yielded agent is not a finished agent — the handoff has an orchestrator side.** The executor roles are told never to babysit a long-running process: they launch it detached and end their turn reporting a PID and log path, expecting *you* to monitor and dispatch follow-up. So when an agent reports a detached launch, immediately arm a background wait on that PID and resume the agent (`SendMessage`) when it exits. If you don't, it sits parked forever and its task is unverified — a detached launch is a handoff, not a result.
+- **Don't diagnose agent liveness from the host.** A working agent burns no local CPU (inference is remote) and its transcript file may not be flushed, so "no processes, stale file" is not evidence of a stuck agent — and killing a busy one throws away its work. Probe instead: a message that reports *queued for delivery* means it is alive and working; *had no active task; resumed* means it was genuinely parked.
 <!-- pilotfish:end -->
