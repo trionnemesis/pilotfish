@@ -85,7 +85,26 @@ flowchart TD
 
 ## 安裝
 
-把這一段 prompt 貼進任何 Claude Code session：
+建議的路徑是先把釘選的 v1.1.4 release clone 到本機，再從該 checkout 啟動 Claude Code，讓它讀取本地 runbook：
+
+```sh
+git clone --branch v1.1.4 --depth 1 https://github.com/Nanako0129/pilotfish.git
+cd pilotfish
+claude
+```
+
+在這個 Claude Code session 貼上：
+
+```text
+Read the local file install/AGENT-INSTALL.md in the current checkout and follow it to install pilotfish into my global Claude Code configuration.
+Show me the full plan of changes and get my approval before writing anything.
+```
+
+Claude 會讀取本地安裝 runbook、檢查你既有的設定、先給你一份合併計畫（不會盲目覆寫任何東西），經你同意後才動手。安裝是冪等的——重跑一次等於原地升級。
+
+> **注意：** 需要較新版的 Claude Code——舊版可能拒絕 `best` alias，且 `effort`/`tools` frontmatter 會被靜默忽略（agent 仍可用，只是失去調校）。原生 Windows（無 WSL）下 runbook 的 shell 指令假設 POSIX 環境，安裝代理已被指示改用自身檔案工具處理。安裝後請重啟 session：agents 目錄在 session 啟動時掃描，`model` 設定在重啟後生效。
+
+為方便起見，也可以貼上下面的 GitHub raw prompt。這是可變動、未釘選的便利路徑：它跟著 `main` 走，因此從審閱到安裝之間，runbook 與範本可能各自變動；此外，Claude Code 的 WebFetch prompt-injection 防護可能會攔截一份直接對 AI 下達安裝指示的遠端文件。若被攔截，請改用上面的本地 checkout 路徑；不要停用或繞過安全檢查。
 
 ```text
 Read https://raw.githubusercontent.com/Nanako0129/pilotfish/main/install/AGENT-INSTALL.md
@@ -93,26 +112,15 @@ and follow it to install pilotfish into my global Claude Code configuration.
 Show me the full plan of changes and get my approval before writing anything.
 ```
 
-Claude 會讀取安裝 runbook、檢查你既有的設定、先給你一份合併計畫（不會盲目覆寫任何東西），經你同意後才動手。安裝是冪等的——重跑一次等於原地升級。
-
-> **注意：** 需要較新版的 Claude Code——舊版可能拒絕 `best` alias，且 `effort`/`tools` frontmatter 會被靜默忽略（agent 仍可用，只是失去調校）。原生 Windows（無 WSL）下 runbook 的 shell 指令假設 POSIX 環境，安裝代理已被指示改用自身檔案工具處理。安裝後請重啟 session：agents 目錄在 session 啟動時掃描，`model` 設定在重啟後生效。
-
 想手動安裝？同樣的步驟寫在 [install/AGENT-INSTALL.md](./install/AGENT-INSTALL.md)，所有安裝檔的原始範本都在 [templates/](./templates/)。
 
 ## 信任與安全
 
-pilotfish 的安裝方式，是讓 Claude 從本 repo 抓取 runbook 與範本檔、合併進你的全域 `~/.claude/` 設定——其中包含一段會載入**未來每一個 session** 的政策區塊。請把它當成任何 `curl | sh` 看待：信任來自這個 repo 與你的 GitHub 連線，而不是那段貼上的文字。執行前：
+pilotfish 的安裝方式，是讓 Claude 從本 repo 讀取 runbook 與範本檔、合併進你的全域 `~/.claude/` 設定——其中包含一段會載入**未來每一個 session** 的政策區塊。請把它當成任何 `curl | sh` 看待：信任來自這個 repo 與你的 GitHub 連線，而不是那段貼上的文字。建議使用本地 checkout，因為你可以先檢查釘選的 release，再讓 Claude 讀取 runbook。執行前：
 
 - **實際會被裝進去的檔案要親自讀過**，不只是 runbook：就是 [templates/agents/](./templates/agents/) 的六個檔案加上 [templates/claude-md.orchestration.md](./templates/claude-md.orchestration.md)。除此之外不會寫入任何東西。
-- **釘選到 release tag 或 commit**，確保你審過的就是實際裝的——從你讀它、到 Claude 抓它之間，`main` 是可能變動的。把 URL 裡的 `main` 換成 release tag（如 `v1.1.0`，見 [releases](https://github.com/Nanako0129/pilotfish/releases)），或要最嚴格保證就用完整 commit SHA：
-
-```text
-Read https://raw.githubusercontent.com/Nanako0129/pilotfish/<TAG_OR_SHA>/install/AGENT-INSTALL.md
-and follow it to install pilotfish. Fetch every template from that same <TAG_OR_SHA>, never from main.
-Show me the full plan of changes and get my approval before writing anything.
-```
-
-- **Approval gate 有必要，但單靠它不夠：** 經你同意前 Claude 不會動手，但它給你看的計畫，是它對一份剛抓下來的文件的自行摘要。「釘 commit＋自己讀範本」才是讓這道關卡真正可信的方法。完全不信任遠端抓取的話，clone 本 repo、把安裝 prompt 指向本地 checkout 即可。
+- **釘選到 release tag 或 commit**，確保你審過的就是實際裝的——從你讀它、到 Claude 讀它之間，`main` 是可能變動的。上面的建議指令已釘選 `v1.1.4` release tag；要最嚴格保證時，請先 fetch 並 checkout 你審閱過的完整 commit SHA，再在啟動 Claude 前驗證 checkout。
+- **保留 approval gate：** 經你同意前 Claude 不會動手，但計畫仍只是 runbook 的摘要。請自行審閱本地 runbook 與範本；若 raw URL 被攔截，也不要削弱或繞過 WebFetch 的 prompt-injection 防護。
 
 ## 安裝內容
 
@@ -126,13 +134,23 @@ Show me the full plan of changes and get my approval before writing anything.
 
 ## 更新
 
-安裝程式是冪等的，所以**把安裝 prompt 再貼一次就是更新**——沒變的檔案自動跳過、政策區塊原地替換、settings 只在缺 key 時才動。想先看 changelog 再決定的話，貼這段：
+安裝程式是冪等的，所以**把安裝 prompt 再貼一次就是更新**——沒變的檔案自動跳過、政策區塊原地替換、settings 只在缺 key 時才動。要釘選版本更新時，先取得想升級到的 release tag，把該 tag 的 checkout clone 到本機，再從裡面啟動 Claude Code：
+
+```sh
+git clone --branch <RELEASE_TAG> --depth 1 https://github.com/Nanako0129/pilotfish.git
+cd pilotfish
+claude
+```
+
+如果需要改用完整 commit SHA，請先 fetch 並 checkout 該 SHA，再啟動 Claude Code。
+
+接著貼上：
 
 ```text
-Read https://raw.githubusercontent.com/Nanako0129/pilotfish/main/install/AGENT-INSTALL.md
-and follow its "Updating an existing install" section: detect my installed pilotfish version,
-show me the changelog since then, and upgrade after my approval.
+Read the local file install/AGENT-INSTALL.md in the current checkout and follow its "Updating an existing install" section: detect my installed pilotfish version, show me the changelog since then, and upgrade after my approval.
 ```
+
+[安裝](#安裝)裡的 raw `main` prompt 仍是可變動的便利路徑，不是釘選或可靠的更新路徑；它可能被 WebFetch 的 prompt-injection 防護攔截，也不可以拿來繞過這道防護。
 
 | 想要…… | 做法 |
 |---|---|

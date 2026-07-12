@@ -85,7 +85,26 @@ The policy layer adds the operating rules: spec delegations completely in one sh
 
 ## Install
 
-Paste this single prompt into any Claude Code session:
+The recommended path is to clone the pinned v1.1.4 release locally, then start Claude Code from that checkout so it can read the runbook as a local file:
+
+```sh
+git clone --branch v1.1.4 --depth 1 https://github.com/Nanako0129/pilotfish.git
+cd pilotfish
+claude
+```
+
+In that Claude Code session, paste this prompt:
+
+```text
+Read the local file install/AGENT-INSTALL.md in the current checkout and follow it to install pilotfish into my global Claude Code configuration.
+Show me the full plan of changes and get my approval before writing anything.
+```
+
+Claude reads the local install runbook, inspects your existing configuration, shows you a merge plan (nothing is overwritten blindly), and applies it after you approve. Installation is idempotent — running it again upgrades in place.
+
+> **Note:** Requires a reasonably current Claude Code — on older builds the `best` alias may be rejected, and `effort`/`tools` frontmatter is silently ignored (agents still run, just untuned). On native Windows without WSL, the runbook's shell snippets assume a POSIX shell; the installing agent is instructed to fall back to its own file tools. Restart your session afterwards: the agents directory is scanned at session start, and the `model` setting applies on restart.
+
+For convenience, you can also paste the raw GitHub prompt below. This is a mutable, unpinned convenience path: it follows `main`, so the runbook and templates may change independently between review and installation, and Claude Code's WebFetch prompt-injection protection may intercept a remote document that directly instructs an AI to install software. If it is intercepted, use the local-checkout path above; do not disable or bypass the safety check.
 
 ```text
 Read https://raw.githubusercontent.com/Nanako0129/pilotfish/main/install/AGENT-INSTALL.md
@@ -93,26 +112,15 @@ and follow it to install pilotfish into my global Claude Code configuration.
 Show me the full plan of changes and get my approval before writing anything.
 ```
 
-Claude reads the install runbook, inspects your existing configuration, shows you a merge plan (nothing is overwritten blindly), and applies it after you approve. Installation is idempotent — running it again upgrades in place.
-
-> **Note:** Requires a reasonably current Claude Code — on older builds the `best` alias may be rejected, and `effort`/`tools` frontmatter is silently ignored (agents still run, just untuned). On native Windows without WSL, the runbook's shell snippets assume a POSIX shell; the installing agent is instructed to fall back to its own file tools. Restart your session afterwards: the agents directory is scanned at session start, and the `model` setting applies on restart.
-
 Prefer to do it by hand? The same steps are written for humans in [install/AGENT-INSTALL.md](./install/AGENT-INSTALL.md), and every file it installs lives under [templates/](./templates/).
 
 ## Trust & security
 
-pilotfish installs by having Claude fetch a runbook and template files from this repo and merge them into your global `~/.claude/` config — including a policy block that then loads into **every future session**. Treat it like any `curl | sh`: trust flows from this repo and your GitHub connection, not from the paste. Before running it:
+pilotfish installs by having Claude read a runbook and template files from this repo and merge them into your global `~/.claude/` config — including a policy block that then loads into **every future session**. Treat it like any `curl | sh`: trust flows from this repo and your GitHub connection, not from the paste. The local checkout path is recommended because you can inspect the pinned release before Claude reads the runbook. Before running it:
 
 - **Read the actual bytes that get installed**, not just the runbook: the six files in [templates/agents/](./templates/agents/) and [templates/claude-md.orchestration.md](./templates/claude-md.orchestration.md). Nothing else is written to disk.
-- **Pin to a release tag or commit** so what you reviewed is what installs — `main` can change between the moment you read it and the moment Claude fetches it. Replace `main` with a release tag (e.g. `v1.1.0`, see [releases](https://github.com/Nanako0129/pilotfish/releases)) or, for the strictest guarantee, a full commit SHA:
-
-```text
-Read https://raw.githubusercontent.com/Nanako0129/pilotfish/<TAG_OR_SHA>/install/AGENT-INSTALL.md
-and follow it to install pilotfish. Fetch every template from that same <TAG_OR_SHA>, never from main.
-Show me the full plan of changes and get my approval before writing anything.
-```
-
-- **The approval gate is necessary but not sufficient by itself:** Claude writes nothing until you approve, but the plan it shows you is its own summary of a document it just fetched. Pinning plus reading the templates is what makes the gate trustworthy. If you don't trust remote fetching at all, clone the repo and point the install prompt at your local checkout.
+- **Pin to a release tag or commit** so what you reviewed is what installs — `main` can change between the moment you read it and the moment Claude reads it. The recommended command above pins to the `v1.1.4` release tag; for the strictest guarantee, fetch and check out the full commit SHA you reviewed, then verify that checkout before launching Claude.
+- **Keep the approval gate:** Claude writes nothing until you approve the merge plan, but the plan is still a summary of the runbook. Review the local runbook and templates yourself, and do not weaken or bypass WebFetch's prompt-injection protection if the raw URL is intercepted.
 
 ## What gets installed
 
@@ -126,13 +134,23 @@ Nothing is written into any project. That's deliberate — see the design doc.
 
 ## Updating
 
-The installer is idempotent, so **re-running the install prompt is the update** — unchanged files are skipped, the policy block is replaced in place, your settings are only touched if keys are missing. For a proper update flow that shows you the changelog first, paste:
+The installer is idempotent, so **re-running the install prompt is the update** — unchanged files are skipped, the policy block is replaced in place, your settings are only touched if keys are missing. For a pinned update, first obtain the release tag you want to upgrade to, clone that tagged checkout locally, and start Claude Code from it:
+
+```sh
+git clone --branch <RELEASE_TAG> --depth 1 https://github.com/Nanako0129/pilotfish.git
+cd pilotfish
+claude
+```
+
+If you require a full commit SHA instead, fetch and check out that SHA before starting Claude Code.
+
+Then paste:
 
 ```text
-Read https://raw.githubusercontent.com/Nanako0129/pilotfish/main/install/AGENT-INSTALL.md
-and follow its "Updating an existing install" section: detect my installed pilotfish version,
-show me the changelog since then, and upgrade after my approval.
+Read the local file install/AGENT-INSTALL.md in the current checkout and follow its "Updating an existing install" section: detect my installed pilotfish version, show me the changelog since then, and upgrade after my approval.
 ```
+
+The raw `main` prompt in [Install](#install) remains a mutable convenience path, not a pinned or reliable update path; it may be intercepted by WebFetch prompt-injection protection, and it must not be used to bypass that protection.
 
 | Want to… | How |
 |---|---|
