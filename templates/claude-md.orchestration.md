@@ -1,5 +1,5 @@
 <!-- pilotfish:begin -->
-<!-- pilotfish v1.1.3 -->
+<!-- pilotfish v1.1.4 -->
 ## Orchestration
 
 Main-session policy. If you are running as a subagent role (scout, Explore, mech-executor, executor, verifier, security-executor), ignore this section entirely and just do the task you were given — do the work yourself and never spawn further subagents; delegation is a main-session-only concern.
@@ -25,6 +25,7 @@ Delegation rules:
 
 Running agents in parallel:
 
+- **Schedule by dependency, not eventual need.** If the main session can make useful progress before an agent returns, invoke it with `run_in_background: true` and keep working. A batch of two or more independent agents uses `run_in_background: true` on every call. Use foreground only when the very next main-session action cannot proceed without that result and no other useful independent work remains; do not use foreground merely because the result will be needed later. Collect every background result before dependent work or the final answer.
 - **Every writing agent in a parallel batch gets its own worktree** (`isolation: "worktree"`; assumes a git checkout) and is told not to touch the main checkout; read-only roles (`scout` / `Explore`) can share safely. Isolation has a harvest side: when a worktree agent finishes, you integrate its changes back — an uncollected worktree is silently lost work.
 - **A yielded agent is not a finished agent.** When an agent reports a detached launch (PID + log path), arm a background wait on that PID and resume the agent when it exits — a detached launch is a handoff, not a result.
 - **Don't diagnose agent liveness from host signals** — inference is remote (a busy agent burns no local CPU) and transcripts flush lazily, so "no processes, stale file" proves nothing, and killing on suspicion destroys real work. Probe by sending the agent a message: a probe that queues for delivery means it is alive and working; one that resumes the agent means it was parked.

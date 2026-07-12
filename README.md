@@ -81,7 +81,7 @@ The six roles:
 | `verifier` | opus | medium | Fresh-context adversarial verification; returns CONFIRMED/REFUTED, never fixes |
 | `security-executor` | opus | high | Anything security-sensitive — deliberately kept off Fable 5, whose safety classifiers can refuse benign defensive-security work |
 
-The policy layer adds the operating rules: spec delegations completely in one shot (including the *why*), start with the cheapest plausible role and escalate after two failures, always set an explicit `model` on ad-hoc fan-outs, and gate non-trivial work behind a `verifier` pass before calling it done.
+The policy layer adds the operating rules: spec delegations completely in one shot (including the *why*), start with the cheapest plausible role and escalate after two failures, always set an explicit `model` on ad-hoc fan-outs, schedule independent work in the background while reserving foreground agents for immediate dependencies, and gate non-trivial work behind a `verifier` pass before calling it done.
 
 ## Install
 

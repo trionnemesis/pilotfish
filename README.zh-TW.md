@@ -81,7 +81,7 @@ flowchart TD
 | `verifier` | opus | medium | Fresh-context 對抗式驗證；回報 CONFIRMED/REFUTED，永不動手修 |
 | `security-executor` | opus | high | 一切資安相關工作——刻意不走 Fable 5，其安全分類器可能誤拒良性的防禦性資安工作 |
 
-政策層補上運作規則：委派時一次給完整規格（含背後的「為什麼」）、從最便宜的可行角色開始並在兩次失敗後升級、ad-hoc fan-out 必須明確指定 `model`、非平凡的變更在回報完成前必須通過 `verifier` 驗證。
+政策層補上運作規則：委派時一次給完整規格（含背後的「為什麼」）、從最便宜的可行角色開始並在兩次失敗後升級、ad-hoc fan-out 必須明確指定 `model`、可獨立推進的工作放到背景而前景只保留給立即相依、非平凡的變更在回報完成前必須通過 `verifier` 驗證。
 
 ## 安裝
 
