@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ROLES = (
     "scout",
     "Explore",
+    "plan-verifier",
+    "security-reviewer",
     "mech-executor",
     "executor",
     "verifier",
@@ -26,18 +28,40 @@ class PolicyContractTests(unittest.TestCase):
         results = json.loads((gate / "results.json").read_text(encoding="utf-8"))
         runtime = results["runtime"]
 
-        policy = (gate / runtime["gate_snapshot_policy"]).read_bytes()
-        agents = (gate / runtime["gate_snapshot_agents_json"]).read_text(
-            encoding="utf-8"
-        ).rstrip("\n").encode()
+        for prefix in ("superseded_gate", "final_gate"):
+            policy = (gate / runtime[f"{prefix}_snapshot_policy"]).read_bytes()
+            agents = (gate / runtime[f"{prefix}_snapshot_agents_json"]).read_text(
+                encoding="utf-8"
+            ).rstrip("\n").encode()
 
-        self.assertEqual(
-            hashlib.sha256(policy).hexdigest(),
-            runtime["gate_orchestration_sha256"],
+            self.assertEqual(
+                hashlib.sha256(policy).hexdigest(),
+                runtime[f"{prefix}_orchestration_sha256"],
+            )
+            self.assertEqual(
+                hashlib.sha256(agents).hexdigest(),
+                runtime[f"{prefix}_agents_json_sha256"],
+            )
+
+        current_policy = (
+            ROOT / "templates/claude-md.orchestration.md"
+        ).read_bytes()
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(gate / "build-agents-json.py"),
+                str(ROOT / "templates/agents"),
+            ],
+            check=True,
+            capture_output=True,
         )
         self.assertEqual(
-            hashlib.sha256(agents).hexdigest(),
-            runtime["gate_agents_json_sha256"],
+            hashlib.sha256(current_policy).hexdigest(),
+            runtime["final_candidate_orchestration_sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(completed.stdout.rstrip(b"\n")).hexdigest(),
+            runtime["final_candidate_agents_json_sha256"],
         )
 
         gate_readme = (gate / "README.md").read_text(encoding="utf-8")
@@ -133,22 +157,26 @@ class PolicyContractTests(unittest.TestCase):
         self.assertIn("The two layers compose", policy)
         self.assertIn("final judgment and synthesis in the main session", policy)
 
-    def test_verifier_supports_plan_and_outcome_modes(self) -> None:
+    def test_plan_and_outcome_verification_have_separate_capabilities(self) -> None:
         policy = (ROOT / "templates/claude-md.orchestration.md").read_text(
             encoding="utf-8"
         )
+        plan_verifier = (
+            ROOT / "templates/agents/plan-verifier.md"
+        ).read_text(encoding="utf-8")
         verifier = (ROOT / "templates/agents/verifier.md").read_text(encoding="utf-8")
-        self.assertIn("Every `verifier` invocation must name exactly one mode", policy)
-        self.assertIn("A Plan-readiness brief requests only **READY** / **REVISE**", policy)
-        self.assertIn("must not request **CONFIRMED** / **REFUTED**", policy)
-        self.assertIn("an outcome-verification brief requests only", policy)
-        self.assertIn("must not request **READY** / **REVISE**", policy)
-        self.assertIn("PLAN READINESS", verifier)
-        self.assertIn("OUTCOME VERIFICATION", verifier)
-        self.assertIn("READY", verifier)
-        self.assertIn("REVISE", verifier)
+        self.assertIn("A `plan-verifier` brief requests only", policy)
+        self.assertIn("an outcome `verifier` brief requests only", policy)
+        self.assertIn("Never swap the two roles", policy)
+        self.assertIn("tools: Read, Glob, Grep", plan_verifier)
+        self.assertIn("excludes Bash, Write, Edit", plan_verifier)
+        self.assertIn("READY", plan_verifier)
+        self.assertIn("REVISE", plan_verifier)
+        self.assertNotIn("CONFIRMED", plan_verifier)
         self.assertIn("CONFIRMED", verifier)
         self.assertIn("REFUTED", verifier)
+        self.assertNotIn("READY", verifier)
+        self.assertNotIn("REVISE", verifier)
         self.assertIn("Never plan, edit, or fix anything", verifier)
 
     def test_baton_harness_builds_exact_agent_definitions(self) -> None:
@@ -175,7 +203,7 @@ class PolicyContractTests(unittest.TestCase):
             self.assertEqual(agents[role]["prompt"], prompt.strip())
 
     def test_subagents_never_detach_long_running_processes(self) -> None:
-        for role in ("executor", "mech-executor"):
+        for role in ("executor", "mech-executor", "verifier", "security-executor"):
             agent = (ROOT / "templates" / "agents" / f"{role}.md").read_text(
                 encoding="utf-8"
             )
@@ -200,15 +228,19 @@ class PolicyContractTests(unittest.TestCase):
         policy = (ROOT / "templates/claude-md.orchestration.md").read_text(
             encoding="utf-8"
         )
-        security = (ROOT / "templates/agents/security-executor.md").read_text(
+        reviewer = (ROOT / "templates/agents/security-reviewer.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("Route every security-sensitive task", policy)
-        self.assertIn("never the main session or a general executor", policy)
-        self.assertIn("`ANALYSIS ONLY`", policy)
-        self.assertIn("If the brief is explicitly labeled `ANALYSIS ONLY`", security)
-        self.assertIn("do not modify files", security)
-        self.assertIn("approved, stable execution contract", security)
+        executor = (ROOT / "templates/agents/security-executor.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Before required approval", policy)
+        self.assertIn("tool-enforced read-only `security-reviewer`", policy)
+        self.assertIn("Never send pre-approval work", policy)
+        self.assertIn("tools: Read, Glob, Grep, WebSearch, WebFetch", reviewer)
+        self.assertIn("excludes Bash, Write, Edit", reviewer)
+        self.assertIn("approved, stable execution contract", executor)
+        self.assertIn("pre-approval analysis belongs to `security-reviewer`", executor)
 
 
 if __name__ == "__main__":
