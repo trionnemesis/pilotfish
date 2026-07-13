@@ -118,7 +118,7 @@ Show me the full plan of changes and get my approval before writing anything.
 
 Claude 會讀取本地安裝 runbook、檢查你既有的設定、先給你一份合併計畫（不會盲目覆寫任何東西），經你同意後才動手。安裝是冪等的——重跑一次等於原地升級。
 
-> **注意：** 需要較新版的 Claude Code——舊版可能拒絕 `best` alias，且 `effort`/`tools` frontmatter 會被靜默忽略（agent 仍可用，只是失去調校）。原生 Windows（無 WSL）下 runbook 的 shell 指令假設 POSIX 環境，安裝代理已被指示改用自身檔案工具處理。安裝後請重啟 session：agents 目錄在 session 啟動時掃描，`model` 設定在重啟後生效。
+> **Runtime 要求：** Claude Code **2.1.207 或更新版本**。這是已驗證會強制執行 agent `tools` allowlist 的最低基準；pilotfish 仰賴這項強制力，確保 `plan-verifier` 與 `security-reviewer` 在批准前保持唯讀。若版本更舊或無法辨識，安裝程式會在變更任何檔案前停止。更舊版本也可能拒絕 `best` 或忽略 `effort`。原生 Windows（無 WSL）下 runbook 的 shell 指令假設 POSIX 環境，安裝代理已被指示改用自身檔案工具處理。安裝後請重啟 session：agents 目錄在 session 啟動時掃描，`model` 設定在重啟後生效。
 
 為方便起見，也可以貼上下面的 GitHub raw prompt。這是可變動、未釘選的便利路徑：它跟著 `main` 走，因此從審閱到安裝之間，runbook 與範本可能各自變動；此外，Claude Code 的 WebFetch prompt-injection 防護可能會攔截一份直接對 AI 下達安裝指示的遠端文件。若被攔截，請改用上面的本地 checkout 路徑；不要停用或繞過安全檢查。
 
@@ -200,7 +200,7 @@ Read the local file install/AGENT-INSTALL.md in the current checkout and follow 
 | 會失去 1M context window 嗎？ | 不會——Fable 5 預設即 1M，`best` 解析到 Fable 5 時就是 1M。若想在 `best` 降級到 Opus 時也*保證* 1M，把 `model` 改設 `"opus[1m]"`（`[1m]` 後綴的文件支援範圍是 `sonnet`/`opus`/`opusplan`/完整 model ID，不含 `best`）。 |
 | Orchestrator 自己完全不動手嗎？ | 會動手——馬上要用的閱讀、少量 repo 檔案掃描、決策、根因探索、trace-driven debugging，以及你明確要*它*判斷的事。其他工作只有在成本、context、時間、隔離或驗證的整體效益高於重建與整合成本時才委派。 |
 | 我的專案有自己的 CLAUDE.md，會衝突嗎？ | 檔案完全不會被動到：pilotfish 只寫 `~/.claude/` 底下。執行時 Claude Code 把專案層與使用者層記憶「疊加」載入——兩者同時生效、互不覆寫。若某個 repo 需要不同行為，在該專案的 CLAUDE.md 寫一條在地規則（例如「這個 repo 內直接動手、不委派」）——實務上較具體的指示會勝出。 |
-| 我也裝了 delegation-planning skill | 請把它視為互補的規劃層。[Baton](https://github.com/cablate/baton) 這類 skill 可以塑造 discovery 問題、worker 數量、ownership、順序與 stop condition；pilotfish 提供具名 Claude 角色、模型分流、leaf-agent 邊界、approval gate 與 verifier contract。[公開雙 turn 相容性 Gate](./benchmarks/baton-compatibility/README.zh-TW.md) 已完成 Discovery → main-session Plan → `READY` → 明確批准 → execution → fresh `CONFIRMED` verification。面對小型 fixture，Baton 正確選擇直接 Discovery 與撰寫，而不是硬派 worker。pilotfish 不會停用使用者 skills。 |
+| 我也裝了 delegation-planning skill | 請把它視為互補的規劃層。[Baton](https://github.com/cablate/baton) 這類 skill 可以塑造 discovery 問題、worker 數量、ownership、順序與 stop condition；pilotfish 提供具名 Claude 角色、模型分流、leaf-agent 邊界、approval gate 與 verifier contract。[公開雙 turn 相容性 Gate](./benchmarks/baton-compatibility/README.zh-TW.md) 已完成 Discovery → main-session Plan → `READY` → 明確批准 → execution → fresh `CONFIRMED` verification。面對小型 fixture，Baton 正確讓 Discovery 留在 main session，再把已批准的機械性撰寫委派給 `mech-executor`，並交由 `verifier` 驗證。pilotfish 不會停用使用者 skills。 |
 | 擔心 subagent 品質 | 兩個獨立 fresh-context role 分別守住邊界：唯讀 `plan-verifier` 在批准前挑戰重要 Plan；outcome `verifier` 在實作後嘗試推翻完成結果。官方口徑：fresh-context 驗證者優於自我批判。剩下的交給升級規則（兩次失敗 → 升一層）。驗證本身也不是免費的——它在 Opus 上重讀 context——所以小型工作會略過。 |
 | Spawn agent 不是有額外成本嗎？ | 有——每次 spawn 都是全新 context、要重讀它負責的那部分 codebase，彙整也花 main session 的 token。因此有界的 task-local 掃描預設直接完成；若互相獨立的證據能實質降低 Plan 不確定性，discovery 仍可 fan-out，而 execution 要等 contract 穩定後才委派。公開機械式 control 的 execution-only 區段中，委派的 reported cost field 降低 36.01%，代價是 wall time 增加 7.92%；兩個比較 run 都沒有包含必要的 outcome verifier，因此只能證明便宜 route 可到達，不能宣稱完整 lifecycle savings。研究 fixture 只證明兩個 scout 在該小型任務上的 overhead，不代表 plan-first discovery 一律錯誤。 |
 | 怎麼快速關掉？ | **只關這個 session：** 直接跟 Claude 說「這個 session 不要委派，全部直接動手」——那只是政策文字，它立刻照辦。**只關這個 repo：** 在該 repo 的 CLAUDE.md 加一條在地規則。**整台機器：** 把 `~/.claude/CLAUDE.md` 裡的 `pilotfish:begin/end` 區塊註解掉——agent 檔留著閒置即可。切回來不必重裝。 |
@@ -226,7 +226,7 @@ Read the local file install/AGENT-INSTALL.md in the current checkout and follow 
 告訴 Claude Code：
 
 ```text
-Uninstall pilotfish: remove the six pilotfish agent files from ~/.claude/agents/,
+Uninstall pilotfish: remove the eight pilotfish agent files from ~/.claude/agents/,
 delete the <!-- pilotfish:begin --> ... <!-- pilotfish:end --> block from ~/.claude/CLAUDE.md,
 and offer to restore my previous "model" / remove "fallbackModel" in ~/.claude/settings.json.
 ```

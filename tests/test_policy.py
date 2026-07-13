@@ -89,6 +89,20 @@ class PolicyContractTests(unittest.TestCase):
             content = (ROOT / readme).read_text(encoding="utf-8")
             self.assertIn(f"git clone --branch v{version} --depth 1", content)
 
+    def test_installer_requires_tool_enforcing_runtime(self) -> None:
+        installer = (ROOT / "install/AGENT-INSTALL.md").read_text(encoding="utf-8")
+        self.assertIn("claude --version", installer)
+        self.assertIn("Claude Code 2.1.207 or newer", installer)
+        self.assertIn("stop before presenting a write plan or changing anything", installer)
+        self.assertIn("depend on enforced tool exclusion", installer)
+
+        for readme in ("README.md", "README.zh-TW.md"):
+            content = (ROOT / readme).read_text(encoding="utf-8")
+            self.assertIn("2.1.207", content)
+            self.assertIn("remove the eight pilotfish agent files", content)
+            self.assertIn("`mech-executor`", content)
+            self.assertIn("`verifier`", content)
+
     def test_every_named_role_owns_its_model(self) -> None:
         policy = (ROOT / "templates/claude-md.orchestration.md").read_text(
             encoding="utf-8"
