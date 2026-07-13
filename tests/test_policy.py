@@ -147,7 +147,9 @@ class PolicyContractTests(unittest.TestCase):
             )
             self.assertIn("run commands in the foreground", agent)
             self.assertIn("Never detach", agent)
-            self.assertIn("the orchestrator runs it", agent)
+            self.assertIn("absolute working directory", agent)
+            self.assertIn("required environment variable", agent)
+            self.assertIn("the orchestrator runs it in that exact context", agent)
             self.assertNotIn("launch it detached", agent)
 
         policy = (ROOT / "templates/claude-md.orchestration.md").read_text(
@@ -156,6 +158,8 @@ class PolicyContractTests(unittest.TestCase):
         self.assertIn("Long-running processes are yours, not a subagent's", policy)
         self.assertIn("spawned that agent with `run_in_background: false`", policy)
         self.assertIn("spawn any agent that might run a long command", policy)
+        self.assertIn("absolute working directory or isolated worktree", policy)
+        self.assertIn("rather than the parent checkout", policy)
         self.assertIn("Bash(run_in_background: true)", policy)
 
     def test_security_role_preserves_the_approval_boundary(self) -> None:

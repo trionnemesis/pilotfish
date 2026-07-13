@@ -14,8 +14,8 @@
     "candidate_base_head": "863b117b9da42179c5bb77a05158920fbc092ee2",
     "gate_orchestration_sha256": "b2854ae1a32875144108c69f68d1a75ec4c755e935bbd9fb25214a95c449b0f7",
     "gate_agents_json_sha256": "9d9b4f80ce8aa1f7f3e1386655a991dee9025726f2882ae0ac9cd2a32f788b46",
-    "final_candidate_orchestration_sha256": "876ad30e4249b881de42e4d68d246c524d4d4431a70732440dcb65239419c20e",
-    "final_candidate_agents_json_sha256": "78d760e1c470b2e40e57f930c345401bf38750208ad5c8bb06f5563f67fe9294",
+    "final_candidate_orchestration_sha256": "b0c597a659f4c8b842f42a5ac27f4cbfe3071cb98673fe8817f3d6e39b4d8713",
+    "final_candidate_agents_json_sha256": "d3cc5f4c32fc436044b71fc9e58db3520761e77509417481910074d78a5d1227",
     "baton_skill_sha256": "48b1e573a9e3de85fdb68c433bd47d69add9ec8491613ca304cfcef2326e3d67"
   },
   "final_gate": {

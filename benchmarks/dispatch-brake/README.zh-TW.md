@@ -104,7 +104,7 @@ remora baseline 依序呼叫前景 scout、前景 executor、背景 verifier。M
 
 ### Positive control 與淘汰的迭代
 
-Hard candidate 不能原樣發布：pilotfish 在 12 檔機械式工作中選擇 inline，128.24 秒完成，reported cost field 為 $0.790263。把直接速度 veto 改成 net-benefit 後，相同驗收契約交給 `mech-executor`，12/12 測試通過，138.40 秒完成，reported cost field 為 $0.505682。單次觀察中，cost field 降低 36.01%，代價是 wall time 增加 7.92%。
+Hard candidate 不能原樣發布：pilotfish 在 12 檔機械式工作中選擇 inline，128.24 秒完成，reported cost field 為 $0.790263。把直接速度 veto 改成 net-benefit 後，相同驗收契約交給 `mech-executor`，12/12 測試通過，138.40 秒完成，reported cost field 為 $0.505682。這個 execution-only 區段的單次觀察中，cost field 降低 36.01%，代價是 wall time 增加 7.92%。兩個 run 都沒有包含 release policy 必要的 outcome verifier，因此只能證明便宜 route 可到達，不能宣稱完整 lifecycle savings。
 
 第一版 net-benefit 文案接著讓約十來個短檔案的小型唯讀 fixture 呼叫兩個背景 scout；相較直接 run，wall time 增加 11.71%，reported cost field 增加 15.61%。這支持該 task-local 形狀預設直接讀，但不能證明相同兩個 scout 在為大型 Plan 提供證據時仍屬浪費。pilotfish 的精確 sized-gate run 沒有 Agent call，228.96 秒完成並通過驗收。
 

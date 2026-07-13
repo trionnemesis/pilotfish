@@ -543,8 +543,10 @@
       "direct_run": "mechanical-pilotfish-hard-brake",
       "delegated_run": "mechanical-pilotfish-balanced",
       "wall_time_change_percent": 7.92,
-      "reported_cost_change_percent": -36.01,
-      "interpretation": "The hard direct-speed veto suppressed a useful cheap-worker route. Net-benefit routing restored it with a modest latency trade-off."
+      "execution_only_reported_cost_change_percent": -36.01,
+      "outcome_verification_included": false,
+      "full_lifecycle_savings_claimed": false,
+      "interpretation": "The hard direct-speed veto suppressed a useful cheap-worker route. Net-benefit routing restored it with a modest latency trade-off, but neither compared run included the required outcome verifier, so this is not a full-lifecycle savings claim."
     },
     "small_research_pilotfish": {
       "direct_hard_brake_run": "research-pilotfish-hard-brake",

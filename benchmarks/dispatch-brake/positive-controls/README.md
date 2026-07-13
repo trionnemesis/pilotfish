@@ -34,31 +34,40 @@ The result is intentionally not “delegate less.” Stable mechanical repetitio
 
 | Run | Agent pattern | Wall time | Reported cost field | Result |
 |---|---|---:|---:|---|
-| pilotfish mechanical, hard veto | Inline | 128.24 s | $0.790263 | 12/12 pass |
-| pilotfish mechanical, balanced | `mech-executor` foreground | 138.40 s | $0.505682 | 12/12 pass |
+| pilotfish mechanical, hard veto | Inline; no outcome verifier | 128.24 s | $0.790263 | 12/12 pass |
+| pilotfish mechanical, balanced | `mech-executor` foreground; no outcome verifier | 138.40 s | $0.505682 | 12/12 pass |
 | pilotfish small research, broad fan-out | 2 scouts background | 261.52 s | $1.036893 | Pass |
 | pilotfish small research, direct comparison | Inline | 234.10 s | $0.896864 | Pass |
 | pilotfish small research, sized gate | Inline | 228.96 s | $0.918431 | Pass |
 | pilotfish tightly coupled bug, balanced | Inline | 77.45 s | $0.365309 | 2/2 pass |
 | remora tightly coupled bug, balanced | Inline diagnosis/fix → verifier foreground | 200.86 s | $0.817504 | 2/2 pass |
 
-For the mechanical control, delegation reduced the reported cost field by 36.01% while adding 7.92% wall time. For the small research control, the two-scout run increased wall time by 11.71% and the reported cost field by 15.61% relative to its direct comparison. These are single task-local runs, not population estimates, and the research comparison did not include downstream Plan synthesis or execution.
+In the mechanical control's execution-only segment, delegation reduced the reported cost field by 36.01% while adding 7.92% wall time. Neither mechanical run performed the release policy's required outcome-verifier pass, so this demonstrates that the cheap execution route remains reachable; it does **not** establish full-lifecycle savings. For the small research control, the two-scout run increased wall time by 11.71% and the reported cost field by 15.61% relative to its direct comparison. These are single task-local runs, not population estimates, and the research comparison did not include downstream Plan synthesis or execution.
 
 ## Reproduce
 
-Copy one fixture into a disposable directory, initialize it as a Git repository, verify the failing or clean baseline, and use the prompt from its adjacent `task.md`.
+For a byte-identical reproduction of the published balanced mechanical trace, attach the pinned `863b117` snapshot as a temporary worktree. The current checkout supplies only the generic JSON builder; both the policy and all six role definitions come from the pinned snapshot and are injected explicitly, so no global pilotfish install is required.
 
 ```bash
-cp -R benchmarks/dispatch-brake/positive-controls/mechanical/fixture /tmp/pilotfish-mechanical
+HARNESS=/path/to/current/pilotfish
+SNAPSHOT=/tmp/pilotfish-dispatch-863b117
+
+git -C "$HARNESS" worktree add --detach "$SNAPSHOT" 863b117
+cp -R "$SNAPSHOT/benchmarks/dispatch-brake/positive-controls/mechanical/fixture" \
+  /tmp/pilotfish-mechanical
 cd /tmp/pilotfish-mechanical
-git init
+git init -q
 git add .
-git commit -m baseline
+git -c user.name=pilotfish-benchmark \
+  -c user.email=pilotfish-benchmark@example.invalid commit -qm baseline
 npm test
 
 TASK="$(sed -n '/^```text$/,/^```$/p' \
-  /path/to/pilotfish/benchmarks/dispatch-brake/positive-controls/mechanical/task.md \
+  "$SNAPSHOT/benchmarks/dispatch-brake/positive-controls/mechanical/task.md" \
   | sed '1d;$d')"
+AGENTS_JSON="$(python3 \
+  "$HARNESS/benchmarks/baton-compatibility/build-agents-json.py" \
+  "$SNAPSHOT/templates/agents")"
 
 /usr/bin/time -p claude -p "$TASK" \
   --output-format stream-json \
@@ -66,7 +75,12 @@ TASK="$(sed -n '/^```text$/,/^```$/p' \
   --no-session-persistence \
   --dangerously-skip-permissions \
   --max-budget-usd 3 \
-  --append-system-prompt-file /path/to/pilotfish/templates/claude-md.orchestration.md
+  --setting-sources project,local \
+  --strict-mcp-config \
+  --agents "$AGENTS_JSON" \
+  --append-system-prompt-file "$SNAPSHOT/templates/claude-md.orchestration.md"
+
+git -C "$HARNESS" worktree remove "$SNAPSHOT"
 ```
 
 > ⚠️ **Safety boundary:** bypass mode was used only in disposable copies of these published fixtures. Never reuse it in an untrusted or valuable checkout.

@@ -104,7 +104,7 @@ The final remora verifier probed reference isolation, later canonical mutation, 
 
 ### Positive controls and rejected iterations
 
-The hard candidate was not safe to ship unchanged: pilotfish completed the 12-file mechanical task inline in 128.24 seconds at a $0.790263 reported cost field. After replacing the direct-speed veto with a net-benefit decision, the same acceptance contract routed to `mech-executor`, passed 12/12 tests, completed in 138.40 seconds, and reported $0.505682. That is 36.01% less reported cost with a 7.92% wall-time trade-off in one observed run.
+The hard candidate was not safe to ship unchanged: pilotfish completed the 12-file mechanical task inline in 128.24 seconds at a $0.790263 reported cost field. After replacing the direct-speed veto with a net-benefit decision, the same acceptance contract routed to `mech-executor`, passed 12/12 tests, completed in 138.40 seconds, and reported $0.505682. In this execution-only segment, that is 36.01% less reported cost with a 7.92% wall-time trade-off. Neither run included the release policy's required outcome verifier, so this demonstrates route reachability rather than full-lifecycle savings.
 
 The first net-benefit wording then spawned two background scouts for a small read-only fixture containing roughly a dozen short files. Compared with its direct run, wall time increased 11.71% and the reported cost field increased 15.61%. This supports direct inspection as the default for that task-local shape; it does not show that the same two scouts would be wasteful when their evidence feeds a larger Plan. pilotfish's exact sized-gate run completed inline in 228.96 seconds with no Agent call and passed its acceptance test.
 

@@ -192,8 +192,10 @@
       "positive-controls/mechanical/fixture"
     ],
     "mechanical_delegation_preserved": true,
-    "mechanical_reported_cost_change_percent": -36.01,
+    "mechanical_execution_only_reported_cost_change_percent": -36.01,
     "mechanical_wall_time_change_percent": 7.92,
+    "mechanical_outcome_verification_included": false,
+    "mechanical_full_lifecycle_savings_claimed": false,
     "small_research_task_local_direct_path_supported": true,
     "small_research_overbroad_cost_change_percent": 15.61,
     "small_research_overbroad_wall_time_change_percent": 11.71,

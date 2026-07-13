@@ -34,31 +34,40 @@ Release 決策改成 phase-aware：
 
 | Run | Agent pattern | Wall time | Reported cost field | 結果 |
 |---|---|---:|---:|---|
-| pilotfish 機械式、hard veto | Inline | 128.24 s | $0.790263 | 12/12 pass |
-| pilotfish 機械式、balanced | `mech-executor` 前景 | 138.40 s | $0.505682 | 12/12 pass |
+| pilotfish 機械式、hard veto | Inline；無 outcome verifier | 128.24 s | $0.790263 | 12/12 pass |
+| pilotfish 機械式、balanced | `mech-executor` 前景；無 outcome verifier | 138.40 s | $0.505682 | 12/12 pass |
 | pilotfish 小型研究、寬鬆 fan-out | 2 個背景 scout | 261.52 s | $1.036893 | Pass |
 | pilotfish 小型研究、直接比較 | Inline | 234.10 s | $0.896864 | Pass |
 | pilotfish 小型研究、有規模 gate | Inline | 228.96 s | $0.918431 | Pass |
 | pilotfish 緊密耦合 bug、balanced | Inline | 77.45 s | $0.365309 | 2/2 pass |
 | remora 緊密耦合 bug、balanced | Inline 診斷／修正 → 前景 verifier | 200.86 s | $0.817504 | 2/2 pass |
 
-機械式 control 中，委派讓 reported cost field 降低 36.01%，wall time 增加 7.92%。小型研究 control 中，兩個 scout 相較直接比較，wall time 增加 11.71%，reported cost field 增加 15.61%。這些都是單次 task-local 觀察，不是母體估計值，而且研究比較沒有包含後續 Plan 彙整或 execution。
+機械式 control 的 execution-only 區段中，委派讓 reported cost field 降低 36.01%，wall time 增加 7.92%。兩次 mechanical run 都沒有執行 release policy 必要的 outcome-verifier pass，因此只能證明便宜 execution route 仍可到達，**不能**建立完整 lifecycle savings。小型研究 control 中，兩個 scout 相較直接比較，wall time 增加 11.71%，reported cost field 增加 15.61%。這些都是單次 task-local 觀察，不是母體估計值，而且研究比較沒有包含後續 Plan 彙整或 execution。
 
 ## 重現
 
-把任一 fixture 複製到可丟棄目錄、初始化成 Git repo、確認 baseline，再使用相鄰 `task.md` 的 prompt。
+要逐 byte 重現公開的 balanced mechanical trace，先把釘選的 `863b117` snapshot 掛成暫時 worktree。目前 checkout 只提供通用 JSON builder；policy 與六個角色 definitions 全部來自釘選 snapshot，並明確注入，因此不需要預先全域安裝 pilotfish。
 
 ```bash
-cp -R benchmarks/dispatch-brake/positive-controls/mechanical/fixture /tmp/pilotfish-mechanical
+HARNESS=/path/to/current/pilotfish
+SNAPSHOT=/tmp/pilotfish-dispatch-863b117
+
+git -C "$HARNESS" worktree add --detach "$SNAPSHOT" 863b117
+cp -R "$SNAPSHOT/benchmarks/dispatch-brake/positive-controls/mechanical/fixture" \
+  /tmp/pilotfish-mechanical
 cd /tmp/pilotfish-mechanical
-git init
+git init -q
 git add .
-git commit -m baseline
+git -c user.name=pilotfish-benchmark \
+  -c user.email=pilotfish-benchmark@example.invalid commit -qm baseline
 npm test
 
 TASK="$(sed -n '/^```text$/,/^```$/p' \
-  /path/to/pilotfish/benchmarks/dispatch-brake/positive-controls/mechanical/task.md \
+  "$SNAPSHOT/benchmarks/dispatch-brake/positive-controls/mechanical/task.md" \
   | sed '1d;$d')"
+AGENTS_JSON="$(python3 \
+  "$HARNESS/benchmarks/baton-compatibility/build-agents-json.py" \
+  "$SNAPSHOT/templates/agents")"
 
 /usr/bin/time -p claude -p "$TASK" \
   --output-format stream-json \
@@ -66,7 +75,12 @@ TASK="$(sed -n '/^```text$/,/^```$/p' \
   --no-session-persistence \
   --dangerously-skip-permissions \
   --max-budget-usd 3 \
-  --append-system-prompt-file /path/to/pilotfish/templates/claude-md.orchestration.md
+  --setting-sources project,local \
+  --strict-mcp-config \
+  --agents "$AGENTS_JSON" \
+  --append-system-prompt-file "$SNAPSHOT/templates/claude-md.orchestration.md"
+
+git -C "$HARNESS" worktree remove "$SNAPSHOT"
 ```
 
 > ⚠️ **安全界線：** bypass mode 只用在這些公開 fixture 的可丟棄 copy。不要套用到不可信或有價值的 checkout。
