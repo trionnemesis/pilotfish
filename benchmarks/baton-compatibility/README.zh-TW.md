@@ -12,7 +12,7 @@
 
 ## 目的
 
-這項實驗驗證 [Baton](https://github.com/cablate/baton) 與 phase-aware pilotfish v1.1.6 candidate，能否在原生 Claude 路由下完成真正的 plan-first lifecycle。Baton 負責選擇最小且有淨效益的 delegation topology；pilotfish 繼續掌管具名角色、角色模型、leaf-agent 邊界、approval、tool capabilities 與 verifier 詞彙。
+這項實驗驗證 [Baton](https://github.com/cablate/baton) 與 phase-aware pilotfish v1.2.0 release candidate，能否在原生 Claude 路由下完成真正的 plan-first lifecycle。Baton 負責選擇最小且有淨效益的 delegation topology；pilotfish 繼續掌管具名角色、角色模型、leaf-agent 邊界、approval、tool capabilities 與 verifier 詞彙。精確實測 snapshot 帶有先前的 v1.1.6 candidate stamp；發布前因這是 feature-level 變更而重分類為 v1.2.0，policy bytes 唯一差異是這行不影響執行的版本註解。
 
 > **Gate：** Discovery 可以發生在實作結果仍未知時，但 source write 必須等待 main-session Plan 與明確批准。Plan review 回覆 `READY` / `REVISE`；outcome review 回覆 `CONFIRMED` / `REFUTED`。
 
@@ -84,7 +84,7 @@ claude --dangerously-skip-permissions \
   "$(cat "$SOURCE/benchmarks/baton-compatibility/prompts/turn-2.txt")"
 ```
 
-這項 Gate 驗證 runtime policy composition 與最終精確角色定義。[`final-gate-snapshot/CLAUDE.md`](./final-gate-snapshot/CLAUDE.md) 直接以 repo 內 bytes 計算 hash；`agents.json` 透過 shell command substitution 讀取，注入與計算 hash 前會去掉檔案尾端 newline。兩個 hash 都與目前 templates 及 [`results.json`](./results.json) 一致，tests 會鎖定三者。Gate 不另外驗證 global file discovery 或 installer；後兩者仍由 installer review path 與 policy contract tests 覆蓋。
+這項 Gate 驗證 runtime policy composition 與最終精確角色定義。[`final-gate-snapshot/CLAUDE.md`](./final-gate-snapshot/CLAUDE.md) 直接以 repo 內 bytes 計算 hash；`agents.json` 透過 shell command substitution 讀取，注入與計算 hash 前會去掉檔案尾端 newline。角色定義與目前 templates 完全一致；發布 policy 在正規化不影響執行的 v1.1.6 → v1.2.0 版本註解後，也與實測 policy 完全一致。[`results.json`](./results.json) 記錄兩份 raw policy hash，tests 則鎖定只有這一項差異。Gate 不另外驗證 global file discovery 或 installer；後兩者仍由 installer review path 與 policy contract tests 覆蓋。
 
 ## 精確 prompts
 

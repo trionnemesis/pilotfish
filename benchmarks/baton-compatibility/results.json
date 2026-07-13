@@ -21,8 +21,12 @@
     "final_gate_snapshot_policy": "final-gate-snapshot/CLAUDE.md",
     "final_gate_snapshot_agents_json": "final-gate-snapshot/agents.json",
     "agents_hash_input": "shell command substitution bytes; repository trailing newline stripped",
-    "final_candidate_orchestration_sha256": "46977d982ebdb244428ae3c45240dcdaedc2f8cb5668032e0bf11c6093a2f9ff",
-    "final_candidate_agents_json_sha256": "b3b45557491e9a92aecacab8a05d4c78c3b8f5dc9b26a5c5683f48c5f22bf3f7",
+    "final_gate_candidate_version_stamp": "1.1.6",
+    "final_gate_candidate_orchestration_sha256": "46977d982ebdb244428ae3c45240dcdaedc2f8cb5668032e0bf11c6093a2f9ff",
+    "release_candidate_version": "1.2.0",
+    "release_candidate_orchestration_sha256": "5760abdeaf55a58c3db6b3f0e3de2c4aa69d303bfd83989b2707a9b00454d9d3",
+    "release_candidate_agents_json_sha256": "b3b45557491e9a92aecacab8a05d4c78c3b8f5dc9b26a5c5683f48c5f22bf3f7",
+    "release_candidate_policy_delta_from_final_gate": "inert version-stamp comment only: v1.1.6 to v1.2.0",
     "baton_skill_sha256": "48b1e573a9e3de85fdb68c433bd47d69add9ec8491613ca304cfcef2326e3d67"
   },
   "final_gate": {

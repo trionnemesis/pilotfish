@@ -43,9 +43,8 @@ class PolicyContractTests(unittest.TestCase):
                 runtime[f"{prefix}_agents_json_sha256"],
             )
 
-        current_policy = (
-            ROOT / "templates/claude-md.orchestration.md"
-        ).read_bytes()
+        current_policy = (ROOT / "templates/claude-md.orchestration.md").read_bytes()
+        final_gate_policy = (gate / runtime["final_gate_snapshot_policy"]).read_bytes()
         completed = subprocess.run(
             [
                 sys.executable,
@@ -57,12 +56,20 @@ class PolicyContractTests(unittest.TestCase):
         )
         self.assertEqual(
             hashlib.sha256(current_policy).hexdigest(),
-            runtime["final_candidate_orchestration_sha256"],
+            runtime["release_candidate_orchestration_sha256"],
         )
         self.assertEqual(
             hashlib.sha256(completed.stdout.rstrip(b"\n")).hexdigest(),
-            runtime["final_candidate_agents_json_sha256"],
+            runtime["release_candidate_agents_json_sha256"],
         )
+        version_stamp = re.compile(rb"pilotfish v\d+\.\d+\.\d+")
+        self.assertEqual(
+            version_stamp.sub(b"pilotfish v<release>", current_policy),
+            version_stamp.sub(b"pilotfish v<release>", final_gate_policy),
+        )
+        self.assertEqual(runtime["final_gate_candidate_version_stamp"], "1.1.6")
+        self.assertEqual(runtime["release_candidate_version"], "1.2.0")
+        self.assertIn("version-stamp comment only", runtime["release_candidate_policy_delta_from_final_gate"])
 
         gate_readme = (gate / "README.md").read_text(encoding="utf-8")
         self.assertIn("SESSION_ID=\"$(python3 -c", gate_readme)

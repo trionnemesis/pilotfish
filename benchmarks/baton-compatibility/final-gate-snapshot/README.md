@@ -1,6 +1,6 @@
 # Final Baton Gate snapshot
 
-> Evidence copy of the exact policy and eight-role `--agents` payload used by the final capability-separated Gate. Install pilotfish from [`templates/`](../../../templates/), not from this directory.
+> Evidence copy of the exact policy and eight-role `--agents` payload used by the final capability-separated Gate. Its policy retains the v1.1.6 candidate stamp used at runtime; the change was reclassified as v1.2.0 before release, and current policy differs only in that inert version comment. Install pilotfish from [`templates/`](../../../templates/), not from this directory.
 
 | File | Runtime use | Hash convention |
 |---|---|---|
@@ -11,7 +11,7 @@ The hashes, role/model observations, timing, and disclosed limits are in [`../re
 
 ## 中文
 
-> 這是 capability split 後最終 Gate 所使用 policy 與八角色 `--agents` payload 的精確證據副本。安裝時請使用 [`templates/`](../../../templates/)，不要從本目錄安裝。
+> 這是 capability split 後最終 Gate 所使用 policy 與八角色 `--agents` payload 的精確證據副本。Policy 保留 runtime 實測時的 v1.1.6 candidate stamp；發布前已重分類為 v1.2.0，目前 policy 唯一差異是這行不影響執行的版本註解。安裝時請使用 [`templates/`](../../../templates/)，不要從本目錄安裝。
 
 | 檔案 | Runtime 用途 | Hash 規則 |
 |---|---|---|

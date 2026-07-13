@@ -12,7 +12,7 @@
 
 ## Purpose
 
-This experiment tests whether [Baton](https://github.com/cablate/baton) and the phase-aware pilotfish v1.1.6 candidate can complete a real plan-first lifecycle under native Claude routing. Baton owns the smallest useful delegation topology; pilotfish remains authoritative for named roles, role models, leaf-agent boundaries, approval, tool capabilities, and verifier vocabulary.
+This experiment tests whether [Baton](https://github.com/cablate/baton) and the phase-aware pilotfish v1.2.0 release candidate can complete a real plan-first lifecycle under native Claude routing. Baton owns the smallest useful delegation topology; pilotfish remains authoritative for named roles, role models, leaf-agent boundaries, approval, tool capabilities, and verifier vocabulary. The exact tested snapshot carries the earlier v1.1.6 candidate stamp; the change was reclassified as v1.2.0 before release, and the only policy-byte delta is that inert version comment.
 
 > **Gate:** Discovery may happen before the implementation outcome is known, but writes wait for a main-session Plan and explicit approval. Plan review returns `READY` / `REVISE`; outcome review returns `CONFIRMED` / `REFUTED`.
 
@@ -84,7 +84,7 @@ claude --dangerously-skip-permissions \
   "$(cat "$SOURCE/benchmarks/baton-compatibility/prompts/turn-2.txt")"
 ```
 
-This gate exercises runtime policy composition and the exact final role definitions. [`final-gate-snapshot/CLAUDE.md`](./final-gate-snapshot/CLAUDE.md) hashes as stored; `agents.json` is read through shell command substitution, which strips its repository trailing newline before hashing and injection. Both hashes match the current templates and [`results.json`](./results.json), and tests lock all three views together. The Gate does not separately test global file discovery or the installer; those remain covered by the installer review path and policy contract tests.
+This gate exercises runtime policy composition and the exact final role definitions. [`final-gate-snapshot/CLAUDE.md`](./final-gate-snapshot/CLAUDE.md) hashes as stored; `agents.json` is read through shell command substitution, which strips its repository trailing newline before hashing and injection. The role definitions match the current templates exactly. The release policy matches the tested policy after normalizing its inert v1.1.6 → v1.2.0 version-stamp comment; [`results.json`](./results.json) records both raw policy hashes, and tests lock that sole delta. The Gate does not separately test global file discovery or the installer; those remain covered by the installer review path and policy contract tests.
 
 ## Exact prompts
 
