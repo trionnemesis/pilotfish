@@ -486,7 +486,7 @@
         }
       },
       "raw_stream_sha256": "3f16c74b56292f0f2f384537622cabdea82508a3fcf0444486c0f38b8006d90d",
-      "stop_reason": "Stopped after two background Explore calls. GPT-5.6 Sol auto-loaded baton-dispatch, whose generic two-disjoint-surfaces heuristic overrode the product gate."
+      "stop_reason": "Stopped after two background Explore calls selected by the auto-loaded baton-dispatch skill. The probe did not continue through main-session Plan synthesis, user approval, execution, or verification."
     },
     {
       "name": "research-remora-precedence-probe-unshipped",
@@ -535,7 +535,7 @@
         }
       },
       "raw_stream_sha256": "084bcdfa3b2597a7e0526d53db05c24a771958c8727ed9720f19348e846495da",
-      "stop_reason": "Stopped after two background scouts. The unshipped wording did not solve auto-loaded skill precedence and was removed rather than released unverified."
+      "stop_reason": "Stopped after two background scouts. The probe recorded the discovery decomposition but did not continue through main-session Plan synthesis, user approval, execution, or verification."
     }
   ],
   "comparisons": {
@@ -553,12 +553,13 @@
       "overbroad_vs_direct_wall_time_change_percent": 11.71,
       "overbroad_vs_direct_reported_cost_change_percent": 15.61,
       "final_agent_calls": 0,
-      "interpretation": "Two disjoint directories were not sufficient scale; the final policy defaults a roughly dozen-short-file scan to direct work."
+      "interpretation": "Direct work was faster and cheaper for this task-local fixture. The two-scout run demonstrates startup and synthesis overhead here, but does not establish that discovery fan-out is harmful in a larger plan-first lifecycle."
     },
-    "remora_external_skill_limit": {
+    "remora_baton_composition_probe": {
       "observed": true,
+      "completed_lifecycle": false,
       "skill": "baton-dispatch v0.1.1",
-      "interpretation": "A co-installed generic delegation skill auto-loaded by GPT-5.6 Sol can supply later routing instructions that conflict with remora's addendum. The attempted precedence wording was ineffective and was not shipped."
+      "interpretation": "The auto-loaded planning skill selected two independent read-only discovery calls while remora supplied the named roles and model routing. Both probes stopped before Plan synthesis, approval, execution, and verification, so the observation establishes neither a compatibility failure nor end-to-end compatibility."
     }
   }
 }

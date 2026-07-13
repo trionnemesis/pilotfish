@@ -1,6 +1,6 @@
 # Dispatch brake 實驗：什麼時候委派會拖慢探索型除錯
 
-這份公開實驗要回答：remora 與 pilotfish 是否應該把「角色符合」和「值得委派」拆成兩道判斷。觀察到的失敗模式是，緊密耦合的除錯工作先後交給 scout 與 executor，兩個 worker 都重新理解 main session 已掌握的證據。第二階段加入 positive control，因為 hard brake 又被證明會壓掉有價值的委派。最終 policy 讓單一 bug 的推理鏈與少量掃描留在 main session，同時保留穩定機械式工作交給便宜 worker 的明確路徑。
+這份公開實驗要回答：remora 與 pilotfish 是否應該把「角色符合」和「值得委派」拆成兩道判斷。觀察到的失敗模式是，緊密耦合的除錯工作先後交給 scout 與 executor，兩個 worker 都重新理解 main session 已掌握的證據。第二階段加入 positive control，因為 hard brake 又被證明會壓掉有價值的委派。數據支持讓單一路徑 bug 推理鏈留在 main session、保留穩定機械式委派，並讓這個小型 task-local 稽核預設直接完成；它沒有測試完整的 discovery → Plan → approval → execution lifecycle。
 
 ## 目錄
 
@@ -106,15 +106,15 @@ remora baseline 依序呼叫前景 scout、前景 executor、背景 verifier。M
 
 Hard candidate 不能原樣發布：pilotfish 在 12 檔機械式工作中選擇 inline，128.24 秒完成，reported cost field 為 $0.790263。把直接速度 veto 改成 net-benefit 後，相同驗收契約交給 `mech-executor`，12/12 測試通過，138.40 秒完成，reported cost field 為 $0.505682。單次觀察中，cost field 降低 36.01%，代價是 wall time 增加 7.92%。
 
-第一版 net-benefit 文案接著又過度修正：約十來個短檔案的小型唯讀 fixture 也叫了兩個背景 scout；相較直接 run，wall time 增加 11.71%，reported cost field 增加 15.61%。因此最終 policy 把 repo 唯讀 fan-out 改成 opt-in，少量短檔案預設直接讀。pilotfish 的精確 sized-gate run 沒有 Agent call，228.96 秒完成並通過驗收。
+第一版 net-benefit 文案接著讓約十來個短檔案的小型唯讀 fixture 呼叫兩個背景 scout；相較直接 run，wall time 增加 11.71%，reported cost field 增加 15.61%。這支持該 task-local 形狀預設直接讀，但不能證明相同兩個 scout 在為大型 Plan 提供證據時仍屬浪費。pilotfish 的精確 sized-gate run 沒有 Agent call，228.96 秒完成並通過驗收。
 
 | Control | 直接或淘汰結果 | Balanced 結果 | 證明什麼 |
 |---|---|---|---|
 | 穩定 12 檔修改 | pilotfish inline，128.24 s，$0.790263 | `mech-executor`，138.40 s，$0.505682 | Brake 仍保留有價值的委派 |
-| 小型唯讀稽核 | 2 scouts，261.52 s，$1.036893 | Inline，228.96 s，$0.918431 | 互相獨立不等於規模足夠 |
+| 小型唯讀稽核 | 2 scouts，261.52 s，$1.036893 | Inline，228.96 s，$0.918431 | 在這個 task-local fixture 中，直接做更快且更便宜 |
 | 緊密耦合 bug | remora baseline scout → executor → verifier | Inline 診斷／修正 → verifier，200.86 s，$0.817504 | Main 持續擁有同一條演進中的證據鏈 |
 
-完整 fixtures、prompts、所有完成 run、刻意中止的決策 probe、正規化 Agent inputs、model usage 與 raw-stream hashes 都位於 [`positive-controls/`](./positive-controls/)。其中有一項刻意不宣稱解決的 compatibility limit：GPT-5.6 Sol 自動載入另外安裝的 [baton-dispatch v0.1.1](https://github.com/cablate/baton) 後，後續通用「兩個 disjoint surfaces」指引仍讓 remora 對小型 fixture fan-out。嘗試補的 precedence 文案沒有解決，因此已移除，不把沒有證據的文字假裝成修正。
+完整 fixtures、prompts、所有完成 run、刻意中止的決策 probe、正規化 Agent inputs、model usage 與 raw-stream hashes 都位於 [`positive-controls/`](./positive-controls/)。GPT-5.6 Sol 自動載入另外安裝的 [baton-dispatch v0.1.1](https://github.com/cablate/baton) 後，Baton 選擇了兩個互相獨立的唯讀 discovery call。兩個歷史 probe 都刻意停在這個觀察點，沒有繼續 main-session Plan 彙整、使用者批准、execution 或 verification，因此只記錄不同的分解方式，而不是衝突。後續的 [pilotfish + Baton 相容性 Gate](../baton-compatibility/README.zh-TW.md) 已在原生 Claude 路由下完成整個 lifecycle。
 
 [`results.json`](./results.json) 包含 raw stream SHA-256。Repo 公開的是正規化後的 observable trace，不直接提交 Claude raw stream JSON，因為 raw init／hook event 會包含與 dispatch 主張無關的本機絕對路徑、session identifier 與 plugin inventory。這份報告不宣稱也不公開 chain-of-thought 或隱藏推理；可稽核證據是公開 prompt、fixture、policies、Agent tool inputs、tool sequence、result metrics、diff 與測試結果。
 
@@ -122,7 +122,7 @@ Hard candidate 不能原樣發布：pilotfish 在 12 檔機械式工作中選擇
 
 對「舊 remora policy 在緊密耦合 workload 造成不必要委派」的信心高。行為從兩次 blocking handoff 加驗證，變成 main session 直接診斷與實作，再做 verification；正確性維持不變，因此改善不是靠移除 quality gate 得到的。
 
-Positive control 也否決了另一個極端。通用的「直接做不得較快」條件會阻止需要的便宜 worker 路徑。Release policy 只有在規格未穩定、共享證據持續演進、ownership 重疊或 closure 無人負責時 hard block；其餘改看 net benefit。機械式 control 證明這不是 no-delegation policy。
+Positive control 也否決了另一個極端。通用的「直接做不得較快」條件會阻止需要的便宜 worker 路徑。Release policy 改用 phase-specific contract：discovery 需要穩定的研究問題與 stop condition，但不必先知道實作結果；execution 則需要穩定的 scope、ownership、done criteria 與 closure。其餘改看 net benefit。機械式 control 證明這不是 no-delegation policy。
 
 對 pilotfish 的效能因果主張信心低。它的 baseline 原本就選擇 inline execution，所以最終結果證明 policy 沒有 regression，不能證明 wall time 少 17.30% 是 dispatch-brake 文案造成。每個條件只有一次執行，model 與 service variance 都是合理解釋。
 
@@ -130,9 +130,9 @@ Positive control 也否決了另一個極端。通用的「直接做不得較快
 
 ## 建議
 
-兩份 policy 都應保留 dispatch brake，但不能把直接工作速度設成 hard veto。規格未穩定、證據必須和 main session 一起演進、寫入重疊或 closure 沒有 owner 時先阻止委派；其餘比較 model 成本、稀缺 context、時間、隔離與 fresh independence，相對於重建、協調、整合與驗證成本。
+兩份 policy 都應保留 dispatch brake，但要依階段套用，且不能把直接工作速度設成 hard veto。Discovery 的問題、scope、證據格式與 stop condition 穩定後，可使用有界唯讀 worker；main session 接著彙整一份 Plan。Writing agent 則要等 scope、獨佔 ownership、done criteria、closure 與必要的使用者批准都穩定。其餘比較 model 成本、稀缺 context、時間、隔離與 fresh independence，相對於重建、協調、整合與驗證成本。
 
-Root-cause discovery、trace-driven debugging 與緊密耦合的 state propagation，在能寫成不必 rediscovery 的 one-shot contract 前，應留在 main session。穩定多檔重複工作仍是便宜機械角色的 positive path。Repo 唯讀 fan-out 應要求相當的掃描量、可重疊 latency 或驗收明確要求獨立觀點；只有目錄不同還不夠。
+Root-cause discovery、trace-driven debugging 與緊密耦合的 state propagation，在共用同一條演進中的 code path 時應留在 main session。大型跨 surface 調查可使用有界唯讀 discovery，但 execution 前要回到 main-session Plan 彙整。穩定多檔重複工作仍是便宜機械角色的 positive path。小型 task-local 掃描預設直接做；相當的掃描量、可重疊 latency，或能實質降低 Plan 不確定性的證據可支持 discovery fan-out。
 
 不要用 inline self-review 取代合比例的 fresh verification。Balanced remora control 在 200.86 秒完成並保留 fresh verifier；89.76 秒的 development candidate 因草稿缺少該規則，仍不列入建議版本。
 
@@ -146,4 +146,4 @@ Repo 的 policy contract tests 應持續鎖住 dispatch-brake 語意；未來只
 | 能否泛化到大型真實 repo？ | 使用固定 source snapshot 重放匿名化的 trace-heavy bug，並維持相同 acceptance gates。 |
 | Verifier 的 latency 是否總是值得？ | 依風險分類比較 workload，維持相同 correctness probes；不能由單一 fixture 外推。 |
 | Client cost field 是否符合 provider 實際成本？ | 未來有 privacy-safe 且 model-comparable 的 provider usage export 時再交叉核對。 |
-| Product policy 應如何與通用 delegation skill 組合？ | 在不暗中停用使用者 skills 的前提下，跨 Claude／GPT models 驗證明確 precedence contract。 |
+| Phase-aware lifecycle 能否跨 provider 與大型任務泛化？ | 原生 Claude 的 [pilotfish Gate](../baton-compatibility/README.zh-TW.md) 與 GPT 路由的 [remora Gate](https://github.com/Nanako0129/remora-cc/tree/main/benchmarks/baton-compatibility) 都只涵蓋一個小型 fixture；要外推 topology 或效能前，需在更大型且真正獨立的 workload 重跑。 |

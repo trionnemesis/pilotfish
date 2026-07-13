@@ -4,7 +4,7 @@ The original state-clone benchmark proved that delegation can be wasteful. It co
 
 | Control | Intended decision | Acceptance gate |
 |---|---|---|
-| Small read-only research | Work inline unless the scan or latency is large enough to repay worker startup and synthesis | `REPORT.md` covers both surfaces with `file:line` evidence; `npm test` passes |
+| Small task-local read-only research | Compare direct inspection with bounded fan-out for this fixture; do not infer a complete plan-first lifecycle | `REPORT.md` covers both surfaces with `file:line` evidence; `npm test` passes |
 | Stable 12-file mechanical edit | Route to the cheap mechanical worker when the cost saving outweighs a modest latency penalty | All 12 tests pass; only adapter source files change |
 | Tightly coupled unknown bug | Keep diagnosis and the first fix in one main-session reasoning chain; retain proportionate fresh verification | Both state-clone tests pass |
 
@@ -15,18 +15,20 @@ The exact fixtures and neutral prompts are in [`research/`](./research/) and [`m
 | Policy iteration | Negative control | Mechanical positive control | Small research control | Decision |
 |---|---|---|---|---|
 | Direct-work hard veto | Good: tightly coupled work stayed inline | Bad: pilotfish stayed inline, so the cheap worker was suppressed | Direct | Rejected: direct execution being faster cannot be a universal veto |
-| Broad net-benefit default | Regressed once in remora into scout → executor | Delegated | Bad: pilotfish spawned two scouts for about a dozen short files | Rejected: directory independence alone is not enough scale |
+| Broad net-benefit default | Regressed once in remora into scout → executor | Delegated | Two scouts had higher overhead than direct work on this fixture | Rejected as a task-local default; not tested as part of a larger Plan |
 | Net benefit + single-bug guard | Good on both products | Good: pilotfish delegated to `mech-executor` | Still too subjective | Retained, then narrowed for read-only fan-out |
-| Sized read-only gate | Not changed | Not changed | pilotfish completed inline with no Agent call | Shipped; remora interaction with an auto-loaded generic skill remains a disclosed limit |
+| Sized read-only gate | Not changed | Not changed | pilotfish completed inline with no Agent call | Retained as a task-local default; the historical Baton probe was incomplete, then a separate lifecycle Gate closed that question |
 
-The final decision model has two layers:
+The release decision model is phase-aware:
 
-| Layer | Meaning |
+| Phase | Meaning |
 |---|---|
-| Hard blockers | Do not delegate while success conditions are unstable, the worker depends on evolving main-session evidence, writes overlap, or closure has no owner |
-| Net benefit | Otherwise compare model cost, scarce context, elapsed time, isolation, and fresh independence against reconstruction, coordination, integration, and verification |
+| Discovery | A stable question, scope, evidence format, and stop condition can be delegated read-only before the implementation outcome is known |
+| Plan and approval | Main session synthesizes one Plan; material work waits for explicit approval before source writes or implementation briefs |
+| Execution | Stable scope, exclusive ownership, done criteria, integration, and verification are required before writing agents start |
+| Net benefit | Within each phase's safety boundary, compare model cost, scarce context, elapsed time, isolation, and fresh independence against reconstruction, coordination, integration, and verification |
 
-The result is intentionally not “delegate less.” Stable mechanical repetition remains an explicit positive path. Read-only repository fan-out is opt-in and needs substantial per-surface scanning, overlapable external/tool latency, or deliberately independent perspectives. Roughly a dozen short files default to one bounded main-session pass.
+The result is intentionally not “delegate less.” Stable mechanical repetition remains an explicit positive path. A task-local bounded scan defaults to one main-session pass, while read-only discovery can still fan out when substantial independent surfaces, overlapable external/tool latency, or independently gathered evidence materially reduces Plan uncertainty.
 
 ## Key measurements
 
@@ -40,7 +42,7 @@ The result is intentionally not “delegate less.” Stable mechanical repetitio
 | pilotfish tightly coupled bug, balanced | Inline | 77.45 s | $0.365309 | 2/2 pass |
 | remora tightly coupled bug, balanced | Inline diagnosis/fix → verifier foreground | 200.86 s | $0.817504 | 2/2 pass |
 
-For the mechanical control, delegation reduced the reported cost field by 36.01% while adding 7.92% wall time. For the small research control, the overbroad two-scout policy increased wall time by 11.71% and the reported cost field by 15.61% relative to its direct comparison. These are single runs, not population estimates.
+For the mechanical control, delegation reduced the reported cost field by 36.01% while adding 7.92% wall time. For the small research control, the two-scout run increased wall time by 11.71% and the reported cost field by 15.61% relative to its direct comparison. These are single task-local runs, not population estimates, and the research comparison did not include downstream Plan synthesis or execution.
 
 ## Reproduce
 
@@ -75,8 +77,8 @@ TASK="$(sed -n '/^```text$/,/^```$/p' \
 |---|---|
 | One run per completed condition | Time and cost deltas show observed behavior, not stable expected values |
 | Client-reported cost field | It is not a provider invoice |
-| Claude quota approached exhaustion | No further pilotfish live repetitions were started; the completed sized-gate run was preserved |
-| Co-installed [baton-dispatch v0.1.1](https://github.com/cablate/baton) | GPT-5.6 Sol auto-loaded the generic skill and still fanned out remora's small research fixture. Two follow-up probes were stopped once the decision violation was observable. An unverified precedence sentence was removed rather than shipped |
-| Product/model asymmetry | A policy that works under Claude Opus is not automatically proven under GPT-5.6 Sol when later skill instructions are injected |
+| Historical Baton probes | GPT-5.6 Sol auto-loaded [baton-dispatch v0.1.1](https://github.com/cablate/baton) and selected two read-only discovery calls. Both probes stopped before Plan synthesis, approval, execution, or verification, so those runs alone did not evaluate the complete composition |
+| Product/model asymmetry | A decision observed under Claude Opus is not automatically proven under GPT-5.6 Sol with a planning skill active |
+| Complete lifecycle | The later [pilotfish + Baton compatibility gate](../../baton-compatibility/README.md) completed the native-Claude two-turn lifecycle; it is a separate single-run gate, not a reinterpretation of these probes |
 
-The remora/Baton interaction is therefore an open compatibility finding, not a claimed fix. The released policy improves the standalone routing contract and has positive/negative behavioral evidence, but it does not claim to dominate every independently installed orchestration skill.
+The historical remora/Baton observation remains a composition probe, not a standalone compatibility finding. Baton selected a plausible discovery topology and remora supplied the named roles and GPT model routing, but the probes stopped before closure. End-to-end compatibility evidence is published separately so the earlier observations keep their original scope.

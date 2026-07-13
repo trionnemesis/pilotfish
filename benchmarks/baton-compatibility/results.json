@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "run_date": "2026-07-14",
+  "timezone": "Asia/Taipei",
+  "fixture": {
+    "repository": "https://github.com/Nanako0129/pilotfish",
+    "commit": "5f027b8c7701d9acd4ae424a6089ffe3d1fa57a7",
+    "path": "benchmarks/dispatch-brake/positive-controls/research/fixture"
+  },
+  "runtime": {
+    "claude_code": "2.1.207",
+    "calico_patched_binary": true,
+    "provider_route": "native Claude first-party authentication",
+    "candidate_base_head": "863b117b9da42179c5bb77a05158920fbc092ee2",
+    "gate_orchestration_sha256": "b2854ae1a32875144108c69f68d1a75ec4c755e935bbd9fb25214a95c449b0f7",
+    "gate_agents_json_sha256": "9d9b4f80ce8aa1f7f3e1386655a991dee9025726f2882ae0ac9cd2a32f788b46",
+    "final_candidate_orchestration_sha256": "876ad30e4249b881de42e4d68d246c524d4d4431a70732440dcb65239419c20e",
+    "final_candidate_agents_json_sha256": "78d760e1c470b2e40e57f930c345401bf38750208ad5c8bb06f5563f67fe9294",
+    "baton_skill_sha256": "48b1e573a9e3de85fdb68c433bd47d69add9ec8491613ca304cfcef2326e3d67"
+  },
+  "final_gate": {
+    "transcript_sha256": "ed10fabf6b4daf38d1cf7c87ff8cd2eb0fb1042873140fcc0d097d872e7bf874",
+    "startup_resend_required": false,
+    "turns": [
+      {
+        "phase": "discovery_plan_approval_wait",
+        "duration_ms": 264368,
+        "duration_api_ms": 263613,
+        "num_turns": 8,
+        "client_reported_cost_usd": 1.8920365,
+        "models": ["claude-fable-5", "claude-opus-4-8"],
+        "baton_loaded": true,
+        "discovery_topology": "direct main-session read",
+        "git_clean": true,
+        "verifier_sequence": ["READY"]
+      },
+      {
+        "phase": "approved_execution_verification",
+        "duration_ms": 230565,
+        "duration_api_ms": 229996,
+        "num_turns": 4,
+        "client_reported_cost_usd": 2.0143385,
+        "models": ["claude-fable-5", "claude-opus-4-8"],
+        "only_change": "REPORT.md",
+        "report_sha256": "d533cafdec8e88ea0b90a86d94c7ddedcf5d645b4bdd990f8f51205ac2b9ab2f",
+        "report_lines": 69,
+        "citation_count": 57,
+        "test_passed": true,
+        "verifier_sequence": ["CONFIRMED"]
+      }
+    ],
+    "total_duration_ms": 494933,
+    "total_num_turns": 12,
+    "total_client_reported_cost_usd": 3.906375,
+    "agent_calls": [
+      {
+        "role": "verifier",
+        "mode": "plan_readiness",
+        "background": false,
+        "invocation_model": null,
+        "observed_model": "claude-opus-4-8",
+        "verdicts": ["READY"]
+      },
+      {
+        "role": "verifier",
+        "mode": "outcome_verification",
+        "background": false,
+        "invocation_model": null,
+        "observed_model": "claude-opus-4-8",
+        "verdicts": ["CONFIRMED"]
+      }
+    ],
+    "passed": true
+  },
+  "rejected_harness_run": {
+    "transcript_sha256": "64376ea52a4e67192df29d8595c180ddc5017638029759a8ac13aff87d5cca81",
+    "duration_ms": 213558,
+    "num_turns": 17,
+    "client_reported_cost_usd": 1.6278745,
+    "git_clean": true,
+    "plan_verdict": "READY",
+    "second_turn_started": false,
+    "rejection_reason": "--setting-sources project,local hid the user-installed baton-dispatch skill, so the run did not test the requested composition"
+  },
+  "post_gate_delta": {
+    "source": "https://github.com/Nanako0129/pilotfish/pull/10#issuecomment-4958570683",
+    "scope": [
+      "templates/agents/executor.md long-process paragraph",
+      "templates/agents/mech-executor.md long-process paragraph",
+      "templates/claude-md.orchestration.md long-process ownership paragraph"
+    ],
+    "reason_not_rerun": "The compatibility fixture invoked neither executor role and no long-running process. The orthogonal delta has four dedicated direct harness trials from the contributor and a policy regression test; the gate and final-candidate hashes remain separate."
+  }
+}

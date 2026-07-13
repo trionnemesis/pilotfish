@@ -194,9 +194,10 @@
     "mechanical_delegation_preserved": true,
     "mechanical_reported_cost_change_percent": -36.01,
     "mechanical_wall_time_change_percent": 7.92,
-    "small_research_fanout_rejected": true,
+    "small_research_task_local_direct_path_supported": true,
     "small_research_overbroad_cost_change_percent": 15.61,
     "small_research_overbroad_wall_time_change_percent": 11.71,
-    "remora_generic_skill_compatibility_resolved": false
+    "baton_plan_first_lifecycle_tested": true,
+    "baton_compatibility_gate": "../baton-compatibility/results.json"
   }
 }

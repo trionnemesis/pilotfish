@@ -1,6 +1,6 @@
 # Dispatch brake experiment: when delegation makes exploratory debugging slower
 
-This public experiment asks whether remora and pilotfish should distinguish *role eligibility* from *dispatch eligibility*. The observed failure mode was a tightly coupled debugging task being handed from the main session to a scout and then an executor, forcing both workers to reconstruct evidence the main session already had. A second phase added positive controls after a hard brake was found to suppress useful delegation. The final policy keeps one-bug reasoning chains and small scans inline while retaining stable mechanical work as an explicit cheap-worker path.
+This public experiment asks whether remora and pilotfish should distinguish *role eligibility* from *dispatch eligibility*. The observed failure mode was a tightly coupled debugging task being handed from the main session to a scout and then an executor, forcing both workers to reconstruct evidence the main session already had. A second phase added positive controls after a hard brake was found to suppress useful delegation. The measurements support keeping one-path debugging chains inline, preserving stable mechanical delegation, and defaulting this small task-local audit to direct work. They do not test a complete discovery → Plan → approval → execution lifecycle.
 
 ## Contents
 
@@ -106,15 +106,15 @@ The final remora verifier probed reference isolation, later canonical mutation, 
 
 The hard candidate was not safe to ship unchanged: pilotfish completed the 12-file mechanical task inline in 128.24 seconds at a $0.790263 reported cost field. After replacing the direct-speed veto with a net-benefit decision, the same acceptance contract routed to `mech-executor`, passed 12/12 tests, completed in 138.40 seconds, and reported $0.505682. That is 36.01% less reported cost with a 7.92% wall-time trade-off in one observed run.
 
-The first net-benefit wording then overcorrected. Two background scouts handled a small read-only fixture containing roughly a dozen short files; compared with its direct run, wall time increased 11.71% and the reported cost field increased 15.61%. The final policy therefore makes read-only repository fan-out opt-in and defaults a bounded short-file set to direct inspection. pilotfish's exact sized-gate run completed inline in 228.96 seconds with no Agent call and passed its acceptance test.
+The first net-benefit wording then spawned two background scouts for a small read-only fixture containing roughly a dozen short files. Compared with its direct run, wall time increased 11.71% and the reported cost field increased 15.61%. This supports direct inspection as the default for that task-local shape; it does not show that the same two scouts would be wasteful when their evidence feeds a larger Plan. pilotfish's exact sized-gate run completed inline in 228.96 seconds with no Agent call and passed its acceptance test.
 
 | Control | Direct or rejected result | Balanced result | What it proves |
 |---|---|---|---|
 | Stable 12-file edit | pilotfish inline, 128.24 s, $0.790263 | `mech-executor`, 138.40 s, $0.505682 | The brake still permits useful delegation |
-| Small read-only audit | 2 scouts, 261.52 s, $1.036893 | Inline, 228.96 s, $0.918431 | Independence alone is not enough scale |
+| Small read-only audit | 2 scouts, 261.52 s, $1.036893 | Inline, 228.96 s, $0.918431 | Direct work was cheaper and faster for this task-local fixture |
 | Tightly coupled bug | remora baseline scout → executor → verifier | Inline diagnosis/fix → verifier, 200.86 s, $0.817504 | One evolving evidence chain stays owned by main |
 
-The complete fixtures, prompts, all completed runs, deliberately interrupted decision probes, normalized Agent inputs, model usage, and raw-stream hashes are in [`positive-controls/`](./positive-controls/). One compatibility limit is intentionally unresolved: when GPT-5.6 Sol auto-loaded the separately installed [baton-dispatch v0.1.1](https://github.com/cablate/baton) skill, its later generic “two disjoint surfaces” guidance still caused remora to fan out the small fixture. The attempted precedence wording did not fix the interaction and was removed rather than shipped without evidence.
+The complete fixtures, prompts, all completed runs, deliberately interrupted decision probes, normalized Agent inputs, model usage, and raw-stream hashes are in [`positive-controls/`](./positive-controls/). When GPT-5.6 Sol auto-loaded the separately installed [baton-dispatch v0.1.1](https://github.com/cablate/baton) skill, Baton selected two independent read-only discovery calls. Both historical probes were deliberately stopped at that observation; neither continued through main-session Plan synthesis, user approval, execution, or verification. They therefore record a different decomposition rather than a conflict. The later [pilotfish + Baton compatibility gate](../baton-compatibility/README.md) completed the entire lifecycle under native Claude routing.
 
 Raw stream hashes are included in [`results.json`](./results.json). The repository publishes normalized observable traces instead of raw Claude stream JSON because raw init and hook events contain local absolute paths, session identifiers, and plugin inventory unrelated to the dispatch claim. No chain-of-thought or hidden reasoning is claimed or published; the evidence is the public prompt, fixture, policies, Agent tool inputs, tool sequence, result metrics, diffs, and test outcomes.
 
@@ -122,7 +122,7 @@ Raw stream hashes are included in [`results.json`](./results.json). The reposito
 
 Confidence is high that the old remora policy caused unnecessary delegation in the tightly coupled workload. The behavior changed from two blocking handoffs plus verification to direct diagnosis and implementation plus verification, while correctness stayed constant. The reduction is therefore not explained by dropping the quality gate.
 
-The positive controls also reject the opposite extreme. A universal “direct must not be faster” condition prevented the desired cheap-worker route. The release policy uses hard blockers only for unstable contracts, evolving shared evidence, overlapping ownership, and missing closure; eligible work is then a net-benefit decision. The mechanical control demonstrates that this is not a no-delegation policy.
+The positive controls also reject the opposite extreme. A universal “direct must not be faster” condition prevented the desired cheap-worker route. The release policy therefore uses phase-specific contracts: discovery requires a stable research question and stop condition but may precede a known implementation outcome; execution requires stable scope, ownership, done criteria, and closure. Eligible work is then a net-benefit decision. The mechanical control demonstrates that this is not a no-delegation policy.
 
 Confidence is lower for any pilotfish performance claim. Its baseline already chose inline execution, so the final run establishes policy non-regression, not that the dispatch-brake wording caused the 17.30% wall-time difference. With one run per condition, model and service variance remain plausible explanations.
 
@@ -130,9 +130,9 @@ The `num_turns` field is not a total-work measure across delegated and non-deleg
 
 ## Recommendation
 
-Keep the dispatch brake in both policies, but do not make direct-work speed a hard veto. Block delegation while the contract is unstable, evidence must evolve with the main session, writes overlap, or closure lacks an owner. Otherwise choose by net benefit across model cost, scarce context, elapsed time, isolation, and fresh independence versus reconstruction, coordination, integration, and verification.
+Keep dispatch brakes in both policies, but apply them by phase and do not make direct-work speed a hard veto. Discovery may use bounded read-only workers once its question, scope, evidence format, and stop condition are stable. Main session then synthesizes one Plan. Writing agents wait for stable scope, exclusive ownership, done criteria, closure, and any required user approval. Within those boundaries, choose by net benefit across model cost, scarce context, elapsed time, isolation, and fresh independence versus reconstruction, coordination, integration, and verification.
 
-Root-cause discovery, trace-driven debugging, and tightly coupled state propagation should remain in the main session until a worker can receive a one-shot contract without rediscovery. Stable multi-file repetition remains a positive path to the cheap mechanical role. Read-only repository fan-out should require substantial scan volume, overlapable latency, or deliberately independent perspectives; separate directories alone are insufficient.
+Root-cause discovery, trace-driven debugging, and tightly coupled state propagation should remain in the main session when they share one evolving code path. Large cross-surface investigations may use bounded read-only discovery, but return to main-session Plan synthesis before execution. Stable multi-file repetition remains a positive path to the cheap mechanical role. A small task-local scan defaults direct; substantial scan volume, overlapable latency, or evidence that materially reduces Plan uncertainty can justify discovery fan-out.
 
 Do not replace proportionate fresh verification with inline self-review. The balanced remora control completed in 200.86 seconds and retained a fresh verifier; the faster 89.76-second development candidate remains excluded because its draft omitted that rule.
 
@@ -146,4 +146,4 @@ The repository-level contract tests should continue to lock the dispatch-brake l
 | Does it generalize to large real repositories? | Replay an anonymized trace-heavy bug with stable source snapshots and identical acceptance gates. |
 | Is the verifier always worth its latency? | Compare risk-classified workloads while keeping correctness probes constant; do not infer from this single fixture. |
 | Are raw provider costs aligned with the client field? | Compare against provider-side usage exports when a privacy-safe, model-comparable source is available. |
-| How should product policy compose with generic delegation skills? | Test an explicit precedence contract across Claude and GPT models without silently disabling user-installed skills. |
+| Does the phase-aware lifecycle generalize across providers and larger tasks? | The native-Claude [pilotfish Gate](../baton-compatibility/README.md) and GPT-routed [remora Gate](https://github.com/Nanako0129/remora-cc/tree/main/benchmarks/baton-compatibility) each cover one small fixture. Repeat the same gates on larger, independently scoped workloads before generalizing topology or performance. |

@@ -4,7 +4,7 @@
 
 | Control | 預期決策 | 驗收閘門 |
 |---|---|---|
-| 小型唯讀研究 | 除非掃描量或 latency 足以攤平 worker 啟動與彙整成本，否則直接做 | `REPORT.md` 用 `file:line` 涵蓋兩個 surface；`npm test` 通過 |
+| 小型 task-local 唯讀研究 | 比較這個 fixture 的直接閱讀與有界 fan-out；不外推完整 plan-first lifecycle | `REPORT.md` 用 `file:line` 涵蓋兩個 surface；`npm test` 通過 |
 | 穩定的 12 檔機械式修改 | 若節省成本高於小幅 latency 代價，就交給便宜的機械角色 | 12 個測試全數通過；只有 adapter source 改變 |
 | 緊密耦合的未知 bug | 診斷與第一次修正留在同一條 main-session 推理鏈，並保留合比例的 fresh verification | 兩個 state-clone 測試通過 |
 
@@ -15,18 +15,20 @@
 | Policy 迭代 | Negative control | 機械式 positive control | 小型研究 control | 判定 |
 |---|---|---|---|---|
 | 直接工作速度 hard veto | 良好：緊密耦合工作留在 main | 不良：pilotfish 直接做，便宜 worker 被壓掉 | 直接做 | 淘汰：直接做較快不能成為通用否決條件 |
-| 寬鬆 net-benefit 預設 | remora 曾退化為 scout → executor | 有委派 | 不良：約十來個短檔案也叫了兩個 scout | 淘汰：目錄互相獨立不等於規模足夠 |
+| 寬鬆 net-benefit 預設 | remora 曾退化為 scout → executor | 有委派 | 兩個 scout 在此 fixture 的 overhead 高於直接做 | 不作為 task-local 預設；未測試放入大型 Plan 的情況 |
 | Net benefit + single-bug guard | 兩套都良好 | 良好：pilotfish 交給 `mech-executor` | 規模描述仍太主觀 | 保留，再收窄唯讀 fan-out |
-| 有規模門檻的唯讀 gate | 未改變 | 未改變 | pilotfish 無 Agent call、直接完成 | 納入；remora 與自動載入通用 skill 的互動列為已知限制 |
+| 有規模門檻的唯讀 gate | 未改變 | 未改變 | pilotfish 無 Agent call、直接完成 | 保留為 task-local 預設；歷史 Baton probe 未完成，後續由獨立 lifecycle Gate 補足 |
 
-最終決策分成兩層：
+Release 決策改成 phase-aware：
 
-| 層級 | 語意 |
+| 階段 | 語意 |
 |---|---|
-| Hard blockers | 成功條件未穩定、worker 依賴 main session 持續變動的證據、寫入重疊或 closure 沒有 owner 時，不委派 |
-| Net benefit | 其他工作比較 model 成本、稀缺 context、時間、隔離與 fresh independence，相對於重建、協調、整合與驗證成本 |
+| Discovery | 問題、scope、證據格式與 stop condition 穩定後，可在實作結果仍未知時委派唯讀調查 |
+| Plan 與 approval | Main session 彙整一份 Plan；重要工作在 source write 或 implementation brief 前等待明確批准 |
+| Execution | Writing agent 開始前，scope、獨佔 ownership、done criteria、整合與驗證都要穩定 |
+| Net benefit | 在各階段安全邊界內，比較 model 成本、稀缺 context、時間、隔離與 fresh independence，相對於重建、協調、整合與驗證成本 |
 
-結論刻意不是「少委派」。穩定的機械式重複工作仍是明確 positive path。Repo 唯讀 fan-out 改為 opt-in，必須有每個 surface 都相當大的掃描量、可重疊的外部／工具 latency，或驗收明確要求獨立觀點。約十來個短檔案預設由 main session 一次讀完。
+結論刻意不是「少委派」。穩定的機械式重複工作仍是明確 positive path。Task-local 有界掃描預設由 main session 一次讀完；若有相當大的獨立 surface、可重疊的外部／工具 latency，或獨立收集的證據能實質降低 Plan 不確定性，唯讀 discovery 仍可 fan-out。
 
 ## 關鍵數據
 
@@ -40,7 +42,7 @@
 | pilotfish 緊密耦合 bug、balanced | Inline | 77.45 s | $0.365309 | 2/2 pass |
 | remora 緊密耦合 bug、balanced | Inline 診斷／修正 → 前景 verifier | 200.86 s | $0.817504 | 2/2 pass |
 
-機械式 control 中，委派讓 reported cost field 降低 36.01%，wall time 增加 7.92%。小型研究 control 中，過度寬鬆的兩個 scout 相較直接比較，wall time 增加 11.71%，reported cost field 增加 15.61%。這些都是單次觀察，不是母體估計值。
+機械式 control 中，委派讓 reported cost field 降低 36.01%，wall time 增加 7.92%。小型研究 control 中，兩個 scout 相較直接比較，wall time 增加 11.71%，reported cost field 增加 15.61%。這些都是單次 task-local 觀察，不是母體估計值，而且研究比較沒有包含後續 Plan 彙整或 execution。
 
 ## 重現
 
@@ -75,8 +77,8 @@ TASK="$(sed -n '/^```text$/,/^```$/p' \
 |---|---|
 | 每個完整條件只有一次執行 | 時間與成本差異只代表觀察到的行為，不是穩定期望值 |
 | Client-reported cost field | 不是 provider 帳單 |
-| Claude 額度接近耗盡 | 沒有再啟動 pilotfish live repetition；已完成的 sized-gate run 完整保留 |
-| 同時安裝 [baton-dispatch v0.1.1](https://github.com/cablate/baton) | GPT-5.6 Sol 自動載入通用 skill，remora 的小型研究仍 fan-out。兩個 follow-up probe 在觀察到決策違反後停止；沒通過驗證的 precedence 文字已移除，沒有假裝發布為修正 |
-| Product／model 不對稱 | Claude Opus 遵守的 policy，不能自動外推到後續又注入 skill 指令的 GPT-5.6 Sol |
+| 歷史 Baton probes | GPT-5.6 Sol 自動載入 [baton-dispatch v0.1.1](https://github.com/cablate/baton) 並選擇兩個唯讀 discovery call；兩個 probe 都在 Plan 彙整、批准、execution 與 verification 前停止，因此那些 run 本身沒有評估完整組合 |
+| Product／model 不對稱 | Claude Opus 觀察到的決策，不能自動外推到啟用 planning skill 的 GPT-5.6 Sol |
+| 完整 lifecycle | 後續的 [pilotfish + Baton 相容性 Gate](../../baton-compatibility/README.zh-TW.md) 已完成原生 Claude 雙 turn lifecycle；那是另一個單次 Gate，不是重新解讀這兩次 probe |
 
-因此 remora／Baton 的互動是公開的 compatibility finding，不是已修正宣稱。Release policy 改善 standalone routing contract，且已有 positive／negative 行為證據，但不宣稱能壓過每一個使用者另外安裝的 orchestration skill。
+歷史 remora／Baton 觀察仍是 composition probe，不是獨立的 compatibility finding。Baton 選擇可成立的 discovery topology，remora 提供具名角色與 GPT 模型分流，但兩次 probe 都在 closure 前停止。完整 E2E 證據另行公開，讓早期觀察維持原本範圍。

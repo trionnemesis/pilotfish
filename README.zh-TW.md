@@ -78,10 +78,20 @@ flowchart TD
 | `Explore` | haiku | low | 覆寫內建 Explore agent（見上方警告） |
 | `mech-executor` | sonnet | low | 規格完整的機械性工作：pattern 重構、照慣例寫測試、文件、批次編輯 |
 | `executor` | opus | medium | 需要判斷的實作：功能開發、bug 修復、涉及設計的重構 |
-| `verifier` | opus | medium | Fresh-context 對抗式驗證；回報 CONFIRMED/REFUTED，永不動手修 |
+| `verifier` | opus | medium | Fresh-context Plan readiness（READY/REVISE）或 outcome verification（CONFIRMED/REFUTED）；永不寫 Plan 或動手修 |
 | `security-executor` | opus | high | 一切資安相關工作——刻意不走 Fable 5，其安全分類器可能誤拒良性的防禦性資安工作 |
 
-政策層會先套用 dispatch brake：規格未穩定、ownership 重疊，以及根因探索、runtime trace 與實作共用同一條 context 的工作，都由 orchestrator 直接完成；符合角色只代表可以委派，不代表一定要委派。其餘工作比較整體淨效益，所以即使直接做稍快，只要範圍明確的便宜 worker 能實質節省 frontier model 額度，仍可委派。少量 repo 檔案的唯讀掃描預設直接做；穩定的多檔重複工作、真正大型的獨立掃描與 fresh verification 仍保有明確委派路徑。穩定工作才一次給完整規格（含背後的「為什麼」），所有已命名角色的 model 只來自 agent 定義，可獨立推進的工作放到背景，而前景只保留給立即相依且淨效益仍為正的工作。
+政策層現在依階段套用不同的 dispatch brake，不再要求所有委派開始前就先決定最終實作。小而穩定的工作仍直接完成；大型或模糊工作可以先做有界的唯讀 discovery，再回到 main session 彙整成一份 Plan。重要 Plan 可接受 fresh readiness review，且 writing agent 開始前要先經過使用者批准。進入 execution 後，scope、獨佔 ownership、done criteria、整合與驗證仍必須穩定。所有已命名角色的 model 只來自 agent 定義，可獨立推進的工作放到背景，而前景只保留給立即相依且淨效益仍為正的工作。
+
+| 階段 | pilotfish 行為 |
+|---|---|
+| Discovery | `scout`／`Explore` 在穩定的 research contract 下收集有界事實；此時實作結果可以仍未知 |
+| Plan | Main session 整合證據，負責 scope、相依、ownership、budget、stop condition 與驗收方式 |
+| Approval | 大型、架構性、高風險或明確要求 plan-first 的工作，在 source write 或 implementation brief 開始前等待明確批准 |
+| Execution | `mech-executor`、`executor` 或 `security-executor` 接收一份穩定且 ownership 獨佔的 contract |
+| Verification | `verifier` 獨立挑戰重要 Plan，或嘗試推翻已完成的非平凡工作；最終判斷仍由 main session 負責 |
+
+長時間 process 仍由 main session 擁有。Leaf executor 只以前景方式執行有界 command，不會用 `nohup`、`setsid`、尾端 `&` 或 subagent-side background execution 來 detach；若工作無法在 10 分鐘內完成，就把精確 command 交回 orchestrator。任何可能執行長 command 的 agent，本身必須用 `run_in_background: true` spawn，才能保留 harness tracking 與 completion notification。
 
 ## 安裝
 
@@ -184,9 +194,9 @@ Read the local file install/AGENT-INSTALL.md in the current checkout and follow 
 | 會失去 1M context window 嗎？ | 不會——Fable 5 預設即 1M，`best` 解析到 Fable 5 時就是 1M。若想在 `best` 降級到 Opus 時也*保證* 1M，把 `model` 改設 `"opus[1m]"`（`[1m]` 後綴的文件支援範圍是 `sonnet`/`opus`/`opusplan`/完整 model ID，不含 `best`）。 |
 | Orchestrator 自己完全不動手嗎？ | 會動手——馬上要用的閱讀、少量 repo 檔案掃描、決策、根因探索、trace-driven debugging，以及你明確要*它*判斷的事。其他工作只有在成本、context、時間、隔離或驗證的整體效益高於重建與整合成本時才委派。 |
 | 我的專案有自己的 CLAUDE.md，會衝突嗎？ | 檔案完全不會被動到：pilotfish 只寫 `~/.claude/` 底下。執行時 Claude Code 把專案層與使用者層記憶「疊加」載入——兩者同時生效、互不覆寫。若某個 repo 需要不同行為，在該專案的 CLAUDE.md 寫一條在地規則（例如「這個 repo 內直接動手、不委派」）——實務上較具體的指示會勝出。 |
-| 我也裝了 delegation-planning skill | 請把它視為第二個 orchestration authority。較晚注入的 Skill output 可能和 pilotfish 全域 policy 衝突；公開實驗在 GPT-5.6 Sol 與 [baton-dispatch v0.1.1](https://github.com/cablate/baton) 觀察到這個現象。建議只留一個 authority，或加一條明確的 project compatibility rule。pilotfish 不會停用使用者 skills。 |
-| 擔心 subagent 品質 | 這正是 `verifier` 的職責：獨立 fresh-context、以「推翻」為目標的驗證。官方口徑：fresh-context 驗證者優於自我批判。剩下的交給升級規則（兩次失敗 → 升一層）。注意驗證本身也不是免費的——它在 Opus 上重讀 context——所以政策把它限定在非平凡的工作。 |
-| Spawn agent 不是有額外成本嗎？ | 有——每次 spawn 都是全新 context、要重讀它負責的那部分 codebase，寫規格也花主 session 的 token。Policy 會讓約十來個短檔案的掃描直接完成，除非有可重疊 latency 或必須獨立觀點；但穩定的批次編輯仍可委派。公開 positive control 的 reported cost field 降低 36.01%，代價是 wall time 增加 7.92%。 |
+| 我也裝了 delegation-planning skill | 請把它視為互補的規劃層。[Baton](https://github.com/cablate/baton) 這類 skill 可以塑造 discovery 問題、worker 數量、ownership、順序與 stop condition；pilotfish 提供具名 Claude 角色、模型分流、leaf-agent 邊界、approval gate 與 verifier contract。[公開雙 turn 相容性 Gate](./benchmarks/baton-compatibility/README.zh-TW.md) 已完成 Discovery → main-session Plan → `READY` → 明確批准 → execution → fresh `CONFIRMED` verification。面對小型 fixture，Baton 正確選擇直接 Discovery 與撰寫，而不是硬派 worker。pilotfish 不會停用使用者 skills。 |
+| 擔心 subagent 品質 | 這正是 `verifier` 的職責：以獨立 fresh-context 挑戰重要 Plan，或嘗試推翻已完成的工作。官方口徑：fresh-context 驗證者優於自我批判。剩下的交給升級規則（兩次失敗 → 升一層）。驗證本身也不是免費的——它在 Opus 上重讀 context——所以小型工作會略過。 |
+| Spawn agent 不是有額外成本嗎？ | 有——每次 spawn 都是全新 context、要重讀它負責的那部分 codebase，彙整也花 main session 的 token。因此有界的 task-local 掃描預設直接完成；若互相獨立的證據能實質降低 Plan 不確定性，discovery 仍可 fan-out，而 execution 要等 contract 穩定後才委派。公開機械式 control 的 reported cost field 降低 36.01%，代價是 wall time 增加 7.92%；研究 fixture 只證明兩個 scout 在該小型任務上的 overhead，不代表 plan-first discovery 一律錯誤。 |
 | 怎麼快速關掉？ | **只關這個 session：** 直接跟 Claude 說「這個 session 不要委派，全部直接動手」——那只是政策文字，它立刻照辦。**只關這個 repo：** 在該 repo 的 CLAUDE.md 加一條在地規則。**整台機器：** 把 `~/.claude/CLAUDE.md` 裡的 `pilotfish:begin/end` 區塊註解掉——agent 檔留著閒置即可。切回來不必重裝。 |
 | 公司管的機器（managed）？ | Managed settings 優先於使用者層設定：managed 的 `model`、`availableModels` 白名單、或同名的 managed agent 都會蓋過 pilotfish 的使用者層安裝。重啟後角色沒生效就找管理員——pilotfish 設計上不會（也不該）繞過管理政策。 |
 
@@ -200,7 +210,8 @@ Read the local file install/AGENT-INSTALL.md in the current checkout and follow 
 | [docs/research.md](./docs/research.md) | English | 研究報告的英文版（忠實翻譯） |
 | [docs/design.md](./docs/design.md) | English | 為什麼是三層、為什麼政策以角色撰寫、為什麼用 alias 不釘版本、effort 分層、以及刻意不做的事 |
 | [benchmarks/dispatch-brake/README.zh-TW.md](./benchmarks/dispatch-brake/README.zh-TW.md) | 繁體中文 + 數據 | 可重現 negative／positive controls、淘汰 policy、Agent traces、成本與時間證據 |
-| [benchmarks/dispatch-brake/positive-controls/README.zh-TW.md](./benchmarks/dispatch-brake/positive-controls/README.zh-TW.md) | 繁體中文 + 數據 | 詳細證明 brake 保留有價值的機械式委派，同時拒絕少量掃描 fan-out |
+| [benchmarks/dispatch-brake/positive-controls/README.zh-TW.md](./benchmarks/dispatch-brake/positive-controls/README.zh-TW.md) | 繁體中文 + 數據 | 機械式委派證據，以及小型唯讀 fan-out 的 task-local overhead 與解讀限制 |
+| [benchmarks/baton-compatibility/README.zh-TW.md](./benchmarks/baton-compatibility/README.zh-TW.md) | 繁體中文 + 數據 | 完整原生 Claude 雙 turn Baton lifecycle、精確 prompts、被拒絕的 harness run、routing 證據與機器可讀結果 |
 
 **先行者與致意。** 「聰明的腦、便宜的手」這個分工不是 pilotfish 發明的：Anthropic 自己的工程文（[Decoupling the brain from the hands](https://www.anthropic.com/engineering/managed-agents)）就是這個框架，Claude Code 內建 [`opusplan`](https://code.claude.com/docs/en/model-config)——如果你只想要更省的 session，`/model opusplan` 根本不需要裝任何 repo——而 [Rylaa/fable5-orchestrator](https://github.com/Rylaa/fable5-orchestrator) 早就把同樣的節流理念做成帶 ledger 強制 hook 的 plugin。pilotfish 的貢獻在打包方式：刻意只有六個角色而非上百個 agent 的目錄、寫成角色而能撐過模型換代的政策、動手前先出示計畫的安裝流程、以及經過對抗式查核的宣稱。如果你偏好更重、有 hook 強制力的路線，用他們的。
 
