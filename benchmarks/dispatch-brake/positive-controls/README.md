@@ -46,13 +46,15 @@ In the mechanical control's execution-only segment, delegation reduced the repor
 
 ## Reproduce
 
-To replay the published balanced mechanical harness with byte-identical policy and role inputs, attach the pinned `863b117` snapshot as a temporary worktree. The current checkout supplies only the generic JSON builder; both the policy and all six role definitions come from the pinned snapshot and are injected explicitly, so no global pilotfish install is required. The main session is pinned to the recorded Opus 4.8 model; generated output, timing, and cost remain single-run observations rather than deterministic bytes.
+To replay the published balanced mechanical harness with byte-identical policy and role inputs, fetch the full pinned commit (required for a shallow release checkout) and attach it as a temporary worktree. The current checkout supplies only the generic JSON builder; both the policy and all six role definitions come from the pinned snapshot and are injected explicitly, so no global pilotfish install is required. The main session is pinned to the recorded Opus 4.8 model; generated output, timing, and cost remain single-run observations rather than deterministic bytes.
 
 ```bash
 HARNESS=/path/to/current/pilotfish
 SNAPSHOT=/tmp/pilotfish-dispatch-863b117
+PINNED=863b117b9da42179c5bb77a05158920fbc092ee2
 
-git -C "$HARNESS" worktree add --detach "$SNAPSHOT" 863b117
+git -C "$HARNESS" fetch --depth 1 origin "$PINNED"
+git -C "$HARNESS" worktree add --detach "$SNAPSHOT" "$PINNED"
 cp -R "$SNAPSHOT/benchmarks/dispatch-brake/positive-controls/mechanical/fixture" \
   /tmp/pilotfish-mechanical
 cd /tmp/pilotfish-mechanical

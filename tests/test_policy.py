@@ -110,6 +110,20 @@ class PolicyContractTests(unittest.TestCase):
             self.assertIn("`mech-executor`", content)
             self.assertIn("`verifier`", content)
 
+    def test_mechanical_replay_fetches_pinned_snapshot(self) -> None:
+        pinned = "863b117b9da42179c5bb77a05158920fbc092ee2"
+        for readme in (
+            "benchmarks/dispatch-brake/positive-controls/README.md",
+            "benchmarks/dispatch-brake/positive-controls/README.zh-TW.md",
+        ):
+            content = (ROOT / readme).read_text(encoding="utf-8")
+            fetch = f'fetch --depth 1 origin "$PINNED"'
+            worktree = 'worktree add --detach "$SNAPSHOT" "$PINNED"'
+            self.assertIn(f"PINNED={pinned}", content)
+            self.assertIn(fetch, content)
+            self.assertIn(worktree, content)
+            self.assertLess(content.index(fetch), content.index(worktree))
+
     def test_every_named_role_owns_its_model(self) -> None:
         policy = (ROOT / "templates/claude-md.orchestration.md").read_text(
             encoding="utf-8"

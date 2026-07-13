@@ -46,13 +46,15 @@ Release 決策改成 phase-aware：
 
 ## 重現
 
-要用逐 byte 相同的 policy 與 role inputs 重播公開的 balanced mechanical harness，先把釘選的 `863b117` snapshot 掛成暫時 worktree。目前 checkout 只提供通用 JSON builder；policy 與六個角色 definitions 全部來自釘選 snapshot，並明確注入，因此不需要預先全域安裝 pilotfish。Main session 也釘到紀錄中的 Opus 4.8；生成輸出、時間與 cost 仍是單次觀察，不是 deterministic bytes。
+要用逐 byte 相同的 policy 與 role inputs 重播公開的 balanced mechanical harness，先 fetch 完整的釘選 commit（shallow release checkout 必須做這一步），再把它掛成暫時 worktree。目前 checkout 只提供通用 JSON builder；policy 與六個角色 definitions 全部來自釘選 snapshot，並明確注入，因此不需要預先全域安裝 pilotfish。Main session 也釘到紀錄中的 Opus 4.8；生成輸出、時間與 cost 仍是單次觀察，不是 deterministic bytes。
 
 ```bash
 HARNESS=/path/to/current/pilotfish
 SNAPSHOT=/tmp/pilotfish-dispatch-863b117
+PINNED=863b117b9da42179c5bb77a05158920fbc092ee2
 
-git -C "$HARNESS" worktree add --detach "$SNAPSHOT" 863b117
+git -C "$HARNESS" fetch --depth 1 origin "$PINNED"
+git -C "$HARNESS" worktree add --detach "$SNAPSHOT" "$PINNED"
 cp -R "$SNAPSHOT/benchmarks/dispatch-brake/positive-controls/mechanical/fixture" \
   /tmp/pilotfish-mechanical
 cd /tmp/pilotfish-mechanical
