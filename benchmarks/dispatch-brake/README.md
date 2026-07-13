@@ -1,6 +1,6 @@
 # Dispatch brake experiment: when delegation makes exploratory debugging slower
 
-This public experiment asks whether remora and pilotfish should distinguish *role eligibility* from *dispatch eligibility*. The observed failure mode was a tightly coupled debugging task being handed from the main session to a scout and then an executor, forcing both workers to reconstruct evidence the main session already had. The final policy keeps that reasoning chain inline while preserving independent fresh-context verification.
+This public experiment asks whether remora and pilotfish should distinguish *role eligibility* from *dispatch eligibility*. The observed failure mode was a tightly coupled debugging task being handed from the main session to a scout and then an executor, forcing both workers to reconstruct evidence the main session already had. A second phase added positive controls after a hard brake was found to suppress useful delegation. The final policy keeps one-bug reasoning chains and small scans inline while retaining stable mechanical work as an explicit cheap-worker path.
 
 ## Contents
 
@@ -43,7 +43,7 @@ The complete fixture is in [`fixture/`](./fixture/), and the exact neutral promp
 
 > ⚠️ **Safety boundary:** `--dangerously-skip-permissions` was used only inside disposable copies of the published fixture. Do not reuse that flag in an untrusted or valuable checkout.
 
-The baseline runs used the installed policies. The candidate runs tested a short dispatch-brake draft. The postpatch runs used the exact repository policy after integration. Every policy source is mapped in [`policies/`](./policies/). The short remora candidate did not contain the final verifier rule, so it is disclosed for completeness but excluded from the recommended comparison.
+The baseline runs used the installed policies. The candidate runs tested a short dispatch-brake draft. The postpatch runs used the repository policy after the first integration. Every original policy source is mapped in [`policies/`](./policies/). The short remora candidate did not contain the verifier rule, so it is disclosed for completeness but excluded from the recommended comparison. The later positive-control phase, including rejected iterations and the final sized read-only gate, is published under [`positive-controls/`](./positive-controls/).
 
 ```bash
 TASK="$(sed -n '/^```text$/,/^```$/p' benchmarks/dispatch-brake/task.md | sed '1d;$d')"
@@ -67,14 +67,14 @@ For the postpatch runs, the exact policy file was supplied with `--append-system
 
 ## Findings
 
-The primary comparison uses the installed baseline and the exact final repository policy, not the shorter development candidate.
+The first-phase comparison uses the installed baseline and the then-current repository policy, not the shorter development candidate. The balanced release policy was refined further by the positive controls below.
 
 | Surface | Policy | Agent calls | Foreground calls | Wall time | Reported cost field | Tests |
 |---|---|---:|---:|---:|---:|---:|
 | pilotfish | v1.1.5 baseline | 0 | 0 | 101.21 s | $0.460236 | 2/2 pass |
-| pilotfish | exact final policy | 0 | 0 | 83.70 s | $0.401433 | 2/2 pass |
+| pilotfish | first postpatch policy | 0 | 0 | 83.70 s | $0.401433 | 2/2 pass |
 | remora | v0.1.6 baseline | 3 | 2 | 322.90 s | $1.316911 | 2/2 pass |
-| remora | exact final policy | 1 | 0 | 244.24 s | $0.790973 | 2/2 pass |
+| remora | first postpatch policy | 1 | 0 | 244.24 s | $0.790973 | 2/2 pass |
 
 The remora baseline invoked a foreground scout, a foreground executor, and a background verifier. The main session's executor brief already contained the complete root cause, which is direct evidence that the second handoff asked a worker to reconstruct a solved investigation. The final policy completed diagnosis and implementation in the main session, then retained a background verifier.
 
@@ -89,7 +89,7 @@ The remora baseline invoked a foreground scout, a foreground executor, and a bac
 | Cache-read input tokens | 663,552 | 557,056 | −16.05% |
 | Fresh verifier | Yes | Yes | Preserved |
 
-All six observed runs are disclosed below, including the development probes.
+All six first-phase runs are disclosed below, including the development probes.
 
 | Run | Wall time | Turns field | Reported cost field | Agent pattern | Outcome |
 |---|---:|---:|---:|---|---|
@@ -102,11 +102,27 @@ All six observed runs are disclosed below, including the development probes.
 
 The final remora verifier probed reference isolation, later canonical mutation, multiple messages, repeated finalize events, and the new provisional-message case. It returned `CONFIRMED`. The published fixture tests remained 2/2 passing after every successful implementation.
 
+### Positive controls and rejected iterations
+
+The hard candidate was not safe to ship unchanged: pilotfish completed the 12-file mechanical task inline in 128.24 seconds at a $0.790263 reported cost field. After replacing the direct-speed veto with a net-benefit decision, the same acceptance contract routed to `mech-executor`, passed 12/12 tests, completed in 138.40 seconds, and reported $0.505682. That is 36.01% less reported cost with a 7.92% wall-time trade-off in one observed run.
+
+The first net-benefit wording then overcorrected. Two background scouts handled a small read-only fixture containing roughly a dozen short files; compared with its direct run, wall time increased 11.71% and the reported cost field increased 15.61%. The final policy therefore makes read-only repository fan-out opt-in and defaults a bounded short-file set to direct inspection. pilotfish's exact sized-gate run completed inline in 228.96 seconds with no Agent call and passed its acceptance test.
+
+| Control | Direct or rejected result | Balanced result | What it proves |
+|---|---|---|---|
+| Stable 12-file edit | pilotfish inline, 128.24 s, $0.790263 | `mech-executor`, 138.40 s, $0.505682 | The brake still permits useful delegation |
+| Small read-only audit | 2 scouts, 261.52 s, $1.036893 | Inline, 228.96 s, $0.918431 | Independence alone is not enough scale |
+| Tightly coupled bug | remora baseline scout → executor → verifier | Inline diagnosis/fix → verifier, 200.86 s, $0.817504 | One evolving evidence chain stays owned by main |
+
+The complete fixtures, prompts, all completed runs, deliberately interrupted decision probes, normalized Agent inputs, model usage, and raw-stream hashes are in [`positive-controls/`](./positive-controls/). One compatibility limit is intentionally unresolved: when GPT-5.6 Sol auto-loaded the separately installed `baton-dispatch` v0.1.1 skill, its later generic “two disjoint surfaces” guidance still caused remora to fan out the small fixture. The attempted precedence wording did not fix the interaction and was removed rather than shipped without evidence.
+
 Raw stream hashes are included in [`results.json`](./results.json). The repository publishes normalized observable traces instead of raw Claude stream JSON because raw init and hook events contain local absolute paths, session identifiers, and plugin inventory unrelated to the dispatch claim. No chain-of-thought or hidden reasoning is claimed or published; the evidence is the public prompt, fixture, policies, Agent tool inputs, tool sequence, result metrics, diffs, and test outcomes.
 
 ## Interpretation
 
-Confidence is high that the old remora policy caused unnecessary delegation in this workload. The behavior changed from two blocking handoffs plus verification to direct diagnosis and implementation plus the same verification class, while correctness stayed constant. The reduction is therefore not explained by dropping the quality gate.
+Confidence is high that the old remora policy caused unnecessary delegation in the tightly coupled workload. The behavior changed from two blocking handoffs plus verification to direct diagnosis and implementation plus verification, while correctness stayed constant. The reduction is therefore not explained by dropping the quality gate.
+
+The positive controls also reject the opposite extreme. A universal “direct must not be faster” condition prevented the desired cheap-worker route. The release policy uses hard blockers only for unstable contracts, evolving shared evidence, overlapping ownership, and missing closure; eligible work is then a net-benefit decision. The mechanical control demonstrates that this is not a no-delegation policy.
 
 Confidence is lower for any pilotfish performance claim. Its baseline already chose inline execution, so the final run establishes policy non-regression, not that the dispatch-brake wording caused the 17.30% wall-time difference. With one run per condition, model and service variance remain plausible explanations.
 
@@ -114,9 +130,11 @@ The `num_turns` field is not a total-work measure across delegated and non-deleg
 
 ## Recommendation
 
-Keep the dispatch brake in both policies. Role routing should happen only after the orchestrator confirms a stable outcome, a direct-work disadvantage, independent progress, exclusive ownership, and cheap closure. Root-cause discovery, trace-driven debugging, and tightly coupled state propagation should remain in the main session until a worker can receive a one-shot contract without rediscovery.
+Keep the dispatch brake in both policies, but do not make direct-work speed a hard veto. Block delegation while the contract is unstable, evidence must evolve with the main session, writes overlap, or closure lacks an owner. Otherwise choose by net benefit across model cost, scarce context, elapsed time, isolation, and fresh independence versus reconstruction, coordination, integration, and verification.
 
-Do not replace the verifier gate with inline self-review. The recommended remora result is the 244.24-second postpatch run, not the faster 89.76-second development candidate that omitted the final verifier rule.
+Root-cause discovery, trace-driven debugging, and tightly coupled state propagation should remain in the main session until a worker can receive a one-shot contract without rediscovery. Stable multi-file repetition remains a positive path to the cheap mechanical role. Read-only repository fan-out should require substantial scan volume, overlapable latency, or deliberately independent perspectives; separate directories alone are insufficient.
+
+Do not replace proportionate fresh verification with inline self-review. The balanced remora control completed in 200.86 seconds and retained a fresh verifier; the faster 89.76-second development candidate remains excluded because its draft omitted that rule.
 
 The repository-level contract tests should continue to lock the dispatch-brake language, while live behavior tests remain a release gate when orchestration wording changes materially.
 
@@ -125,7 +143,7 @@ The repository-level contract tests should continue to lock the dispatch-brake l
 | Question | How to close it |
 |---|---|
 | How stable are the time and cost deltas? | Repeat each exact condition at least five times and publish median, range, and provider status. |
-| Does the brake preserve useful delegation? | Add independent multi-surface, bounded research, and mechanical batch fixtures where delegation should occur. |
 | Does it generalize to large real repositories? | Replay an anonymized trace-heavy bug with stable source snapshots and identical acceptance gates. |
 | Is the verifier always worth its latency? | Compare risk-classified workloads while keeping correctness probes constant; do not infer from this single fixture. |
 | Are raw provider costs aligned with the client field? | Compare against provider-side usage exports when a privacy-safe, model-comparable source is available. |
+| How should product policy compose with generic delegation skills? | Test an explicit precedence contract across Claude and GPT models without silently disabling user-installed skills. |

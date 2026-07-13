@@ -50,14 +50,32 @@ class PolicyContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("Apply a dispatch brake", policy)
-        self.assertIn("direct main-session work would not be faster", policy)
-        self.assertIn("repeatedly reconstructing the main session's evidence", policy)
+        self.assertIn("worker would repeatedly depend", policy)
+        self.assertIn("main session's evolving evidence", policy)
         self.assertIn("root-cause discovery", policy)
         self.assertIn("trace-driven debugging", policy)
         self.assertIn("tightly coupled state propagation", policy)
+        self.assertIn("single unknown bug", policy)
+        self.assertIn("sequential `scout` → `executor` pipeline", policy)
+        self.assertIn("does not own or block the main diagnosis", policy)
         self.assertIn("without rediscovery", policy)
-        self.assertIn("does not make delegation mandatory", policy)
-        self.assertIn("delegation still beats direct execution", policy)
+        self.assertIn("eligible rather than mandatory", policy)
+        self.assertIn("net benefit remains positive", policy)
+
+    def test_policy_preserves_positive_delegation_paths(self) -> None:
+        policy = (ROOT / "templates/claude-md.orchestration.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("choose by net benefit", policy)
+        self.assertIn("lower model cost or quota use", policy)
+        self.assertIn("preserving scarce main-session context", policy)
+        self.assertIn("direct execution being slightly faster is not a veto", policy)
+        self.assertIn("Read-only repository fan-out is opt-in", policy)
+        self.assertIn("substantial independent scan", policy)
+        self.assertIn("external or tool latency can overlap", policy)
+        self.assertIn("Separate directories are not evidence", policy)
+        self.assertIn("roughly a dozen short files", policy)
+        self.assertIn("stable multi-file repetition", policy)
 
 
 if __name__ == "__main__":

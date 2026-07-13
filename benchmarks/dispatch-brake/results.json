@@ -182,5 +182,21 @@
       "causal_performance_claim_supported": false,
       "non_regression_supported": true
     }
+  },
+  "positive_control_extension": {
+    "results": "positive-controls/results.json",
+    "traces": "positive-controls/traces.json",
+    "agent_calls": "positive-controls/agent-calls.json",
+    "fixtures": [
+      "positive-controls/research/fixture",
+      "positive-controls/mechanical/fixture"
+    ],
+    "mechanical_delegation_preserved": true,
+    "mechanical_reported_cost_change_percent": -36.01,
+    "mechanical_wall_time_change_percent": 7.92,
+    "small_research_fanout_rejected": true,
+    "small_research_overbroad_cost_change_percent": 15.61,
+    "small_research_overbroad_wall_time_change_percent": 11.71,
+    "remora_generic_skill_compatibility_resolved": false
   }
 }
