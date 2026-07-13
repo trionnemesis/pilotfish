@@ -43,7 +43,7 @@ flowchart TD
 
 ## Isolation and reproduction
 
-The test ran in a disposable Git repository. The candidate policy was copied to the fixture's parent as project memory, while the six candidate role definitions were converted byte-for-byte into session-scoped `--agents` JSON by [`build-agents-json.py`](./build-agents-json.py). This avoids overwriting the installed global pilotfish files. User memory still stacks underneath the more-specific project candidate and is disclosed as a limit; the session-scoped role definitions replace the user role definitions for this run.
+The test ran in a disposable Git repository. The exact tested policy and session-scoped role JSON are committed under [`gate-snapshot/`](./gate-snapshot/); the JSON was originally converted byte-for-byte from six candidate role definitions by [`build-agents-json.py`](./build-agents-json.py). This avoids overwriting the installed global pilotfish files and makes the tested working-tree snapshot auditable rather than asking readers to reconstruct it from the base commit. User memory still stacks underneath the more-specific project candidate and is disclosed as a limit; the session-scoped role definitions replace the user role definitions for this run.
 
 > ⚠️ **Safety boundary:** `--dangerously-skip-permissions` was used only in the disposable fixture. Do not reuse it in an untrusted or valuable checkout.
 
@@ -51,18 +51,18 @@ The test ran in a disposable Git repository. The candidate policy was copied to 
 SOURCE=/path/to/pilotfish-pr10
 ROOT="$(mktemp -d /tmp/pilotfish-baton-gate.XXXXXX)"
 WORK="$ROOT/fixture"
+SNAPSHOT="$SOURCE/benchmarks/baton-compatibility/gate-snapshot"
 
 mkdir -p "$WORK"
 cp -R "$SOURCE/benchmarks/dispatch-brake/positive-controls/research/fixture/." "$WORK/"
-cp "$SOURCE/templates/claude-md.orchestration.md" "$ROOT/CLAUDE.md"
+cp "$SNAPSHOT/CLAUDE.md" "$ROOT/CLAUDE.md"
 git init -q "$WORK"
 git -C "$WORK" add .
 git -C "$WORK" -c user.name=pilotfish-gate \
   -c user.email=pilotfish-gate@example.invalid commit -qm baseline
 
-AGENTS_JSON="$(python3 \
-  "$SOURCE/benchmarks/baton-compatibility/build-agents-json.py" \
-  "$SOURCE/templates/agents")"
+AGENTS_JSON="$(cat "$SNAPSHOT/agents.json")"
+SESSION_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 cd "$WORK"
 ```
 
@@ -71,20 +71,20 @@ The user setting source is intentional: Baton was installed under the user skill
 ```bash
 claude --dangerously-skip-permissions \
   -p --output-format json --max-budget-usd 3 \
-  --session-id SESSION_ID --model best --effort high \
+  --session-id "$SESSION_ID" --model best --effort high \
   --setting-sources user,project,local --strict-mcp-config \
   --agents "$AGENTS_JSON" \
   "$(cat "$SOURCE/benchmarks/baton-compatibility/prompts/turn-1.txt")"
 
 claude --dangerously-skip-permissions \
   -p --output-format json --max-budget-usd 3 \
-  --resume SESSION_ID --model best --effort high \
+  --resume "$SESSION_ID" --model best --effort high \
   --setting-sources user,project,local --strict-mcp-config \
   --agents "$AGENTS_JSON" \
   "$(cat "$SOURCE/benchmarks/baton-compatibility/prompts/turn-2.txt")"
 ```
 
-This gate exercises runtime policy composition and the exact Gate-snapshot role definitions. It does not separately test global file discovery or the installer; those remain covered by the installer review path and policy contract tests. A later orthogonal long-process handoff fix changed two unused executor prompts and one policy paragraph; Gate and final-candidate hashes remain separate in [`results.json`](./results.json).
+This gate exercises runtime policy composition and the exact Gate-snapshot role definitions. [`gate-snapshot/CLAUDE.md`](./gate-snapshot/CLAUDE.md) hashes as stored; `agents.json` is read through shell command substitution, which strips its repository trailing newline before hashing and injection. Both resulting hashes match [`results.json`](./results.json) and are locked by tests. The Gate does not separately test global file discovery or the installer; those remain covered by the installer review path and policy contract tests. A later orthogonal long-process handoff fix changed two unused executor prompts and one policy paragraph; Gate and final-candidate hashes remain separate.
 
 ## Exact prompts
 

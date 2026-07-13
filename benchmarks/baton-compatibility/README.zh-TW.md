@@ -43,7 +43,7 @@ flowchart TD
 
 ## 隔離與重現
 
-測試只在可丟棄的 Git repo 執行。Candidate policy 被複製到 fixture 的 parent，作為 project memory；六個 candidate 角色則由 [`build-agents-json.py`](./build-agents-json.py) 逐字轉成 session-scoped `--agents` JSON。這避免覆寫已安裝的全域 pilotfish files。User memory 仍疊在較具體的 project candidate 下方，並列為限制；session-scoped roles 則會在這次 run 取代 user role definitions。
+測試只在可丟棄的 Git repo 執行。實測的精確 policy 與 session-scoped role JSON 已提交於 [`gate-snapshot/`](./gate-snapshot/)；該 JSON 原先由 [`build-agents-json.py`](./build-agents-json.py) 從六個 candidate role definitions 逐字轉換。這不只避免覆寫已安裝的全域 pilotfish files，也讓實測 working-tree snapshot 可稽核，不必要求讀者從 base commit 猜回來。User memory 仍疊在較具體的 project candidate 下方，並列為限制；session-scoped roles 則會在這次 run 取代 user role definitions。
 
 > ⚠️ **安全界線：** `--dangerously-skip-permissions` 只用在可丟棄 fixture。不要在不可信或有價值的 checkout 使用。
 
@@ -51,18 +51,18 @@ flowchart TD
 SOURCE=/path/to/pilotfish-pr10
 ROOT="$(mktemp -d /tmp/pilotfish-baton-gate.XXXXXX)"
 WORK="$ROOT/fixture"
+SNAPSHOT="$SOURCE/benchmarks/baton-compatibility/gate-snapshot"
 
 mkdir -p "$WORK"
 cp -R "$SOURCE/benchmarks/dispatch-brake/positive-controls/research/fixture/." "$WORK/"
-cp "$SOURCE/templates/claude-md.orchestration.md" "$ROOT/CLAUDE.md"
+cp "$SNAPSHOT/CLAUDE.md" "$ROOT/CLAUDE.md"
 git init -q "$WORK"
 git -C "$WORK" add .
 git -C "$WORK" -c user.name=pilotfish-gate \
   -c user.email=pilotfish-gate@example.invalid commit -qm baseline
 
-AGENTS_JSON="$(python3 \
-  "$SOURCE/benchmarks/baton-compatibility/build-agents-json.py" \
-  "$SOURCE/templates/agents")"
+AGENTS_JSON="$(cat "$SNAPSHOT/agents.json")"
+SESSION_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 cd "$WORK"
 ```
 
@@ -71,20 +71,20 @@ cd "$WORK"
 ```bash
 claude --dangerously-skip-permissions \
   -p --output-format json --max-budget-usd 3 \
-  --session-id SESSION_ID --model best --effort high \
+  --session-id "$SESSION_ID" --model best --effort high \
   --setting-sources user,project,local --strict-mcp-config \
   --agents "$AGENTS_JSON" \
   "$(cat "$SOURCE/benchmarks/baton-compatibility/prompts/turn-1.txt")"
 
 claude --dangerously-skip-permissions \
   -p --output-format json --max-budget-usd 3 \
-  --resume SESSION_ID --model best --effort high \
+  --resume "$SESSION_ID" --model best --effort high \
   --setting-sources user,project,local --strict-mcp-config \
   --agents "$AGENTS_JSON" \
   "$(cat "$SOURCE/benchmarks/baton-compatibility/prompts/turn-2.txt")"
 ```
 
-這項 Gate 驗證 runtime policy composition 與 Gate snapshot 的精確角色定義，不另外驗證 global file discovery 或 installer；後兩者仍由 installer review path 與 policy contract tests 覆蓋。後來的正交 long-process handoff fix 改動兩個未被呼叫的 executor prompts 與一段 policy；Gate 與 final-candidate hashes 分開記錄於 [`results.json`](./results.json)。
+這項 Gate 驗證 runtime policy composition 與 Gate snapshot 的精確角色定義。[`gate-snapshot/CLAUDE.md`](./gate-snapshot/CLAUDE.md) 直接以 repo 內 bytes 計算 hash；`agents.json` 則透過 shell command substitution 讀取，注入與計算 hash 前會去掉檔案尾端 newline。兩個結果都與 [`results.json`](./results.json) 一致，並由 tests 鎖定。Gate 不另外驗證 global file discovery 或 installer；後兩者仍由 installer review path 與 policy contract tests 覆蓋。後來的正交 long-process handoff fix 改動兩個未被呼叫的 executor prompts 與一段 policy；Gate 與 final-candidate hashes 分開記錄。
 
 ## 精確 prompts
 

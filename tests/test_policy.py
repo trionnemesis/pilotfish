@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -20,6 +21,39 @@ ROLES = (
 
 
 class PolicyContractTests(unittest.TestCase):
+    def test_baton_gate_snapshot_matches_recorded_hashes(self) -> None:
+        gate = ROOT / "benchmarks" / "baton-compatibility"
+        results = json.loads((gate / "results.json").read_text(encoding="utf-8"))
+        runtime = results["runtime"]
+
+        policy = (gate / runtime["gate_snapshot_policy"]).read_bytes()
+        agents = (gate / runtime["gate_snapshot_agents_json"]).read_text(
+            encoding="utf-8"
+        ).rstrip("\n").encode()
+
+        self.assertEqual(
+            hashlib.sha256(policy).hexdigest(),
+            runtime["gate_orchestration_sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(agents).hexdigest(),
+            runtime["gate_agents_json_sha256"],
+        )
+
+        gate_readme = (gate / "README.md").read_text(encoding="utf-8")
+        self.assertIn("SESSION_ID=\"$(python3 -c", gate_readme)
+        self.assertIn('--session-id "$SESSION_ID"', gate_readme)
+        self.assertIn('--resume "$SESSION_ID"', gate_readme)
+
+        controls = (
+            ROOT
+            / "benchmarks"
+            / "dispatch-brake"
+            / "positive-controls"
+            / "README.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("--model claude-opus-4-8", controls)
+
     def test_version_stamps_move_together(self) -> None:
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         policy = (ROOT / "templates/claude-md.orchestration.md").read_text(

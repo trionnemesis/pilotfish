@@ -46,7 +46,7 @@ Release 決策改成 phase-aware：
 
 ## 重現
 
-要逐 byte 重現公開的 balanced mechanical trace，先把釘選的 `863b117` snapshot 掛成暫時 worktree。目前 checkout 只提供通用 JSON builder；policy 與六個角色 definitions 全部來自釘選 snapshot，並明確注入，因此不需要預先全域安裝 pilotfish。
+要用逐 byte 相同的 policy 與 role inputs 重播公開的 balanced mechanical harness，先把釘選的 `863b117` snapshot 掛成暫時 worktree。目前 checkout 只提供通用 JSON builder；policy 與六個角色 definitions 全部來自釘選 snapshot，並明確注入，因此不需要預先全域安裝 pilotfish。Main session 也釘到紀錄中的 Opus 4.8；生成輸出、時間與 cost 仍是單次觀察，不是 deterministic bytes。
 
 ```bash
 HARNESS=/path/to/current/pilotfish
@@ -75,6 +75,7 @@ AGENTS_JSON="$(python3 \
   --no-session-persistence \
   --dangerously-skip-permissions \
   --max-budget-usd 3 \
+  --model claude-opus-4-8 \
   --setting-sources project,local \
   --strict-mcp-config \
   --agents "$AGENTS_JSON" \

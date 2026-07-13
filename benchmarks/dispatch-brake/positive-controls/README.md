@@ -46,7 +46,7 @@ In the mechanical control's execution-only segment, delegation reduced the repor
 
 ## Reproduce
 
-For a byte-identical reproduction of the published balanced mechanical trace, attach the pinned `863b117` snapshot as a temporary worktree. The current checkout supplies only the generic JSON builder; both the policy and all six role definitions come from the pinned snapshot and are injected explicitly, so no global pilotfish install is required.
+To replay the published balanced mechanical harness with byte-identical policy and role inputs, attach the pinned `863b117` snapshot as a temporary worktree. The current checkout supplies only the generic JSON builder; both the policy and all six role definitions come from the pinned snapshot and are injected explicitly, so no global pilotfish install is required. The main session is pinned to the recorded Opus 4.8 model; generated output, timing, and cost remain single-run observations rather than deterministic bytes.
 
 ```bash
 HARNESS=/path/to/current/pilotfish
@@ -75,6 +75,7 @@ AGENTS_JSON="$(python3 \
   --no-session-persistence \
   --dangerously-skip-permissions \
   --max-budget-usd 3 \
+  --model claude-opus-4-8 \
   --setting-sources project,local \
   --strict-mcp-config \
   --agents "$AGENTS_JSON" \
