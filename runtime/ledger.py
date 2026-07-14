@@ -146,7 +146,7 @@ def append_record(
         _validate_records([*records, candidate])
         payload = (canonical_json(candidate) + "\n").encode("utf-8")
 
-        flags = os.O_APPEND | os.O_CREAT | os.O_RDWR
+        flags = os.O_APPEND | os.O_CREAT | os.O_RDWR | getattr(os, "O_BINARY", 0)
         try:
             descriptor = os.open(ledger_path, flags, 0o600)
         except OSError as exc:
