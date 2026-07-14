@@ -1,0 +1,131 @@
+{
+  "schema_version": "0.1",
+  "fixtures": [
+    {
+      "id": "security-refresh-token-replay",
+      "task_description": "修正 refresh token 重放漏洞並補上回歸測試。",
+      "accepted_envelopes": {
+        "task_type": ["security"],
+        "spec_completeness": ["fully_specified", "partial"],
+        "risk_level": ["high"],
+        "risk_tags": [[]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "DELEGATE", "role": "security-executor"},
+      "security_expected": true
+    },
+    {
+      "id": "security-authorization-bypass",
+      "task_description": "使用者可修改 URL 中的 account_id 讀取其他租戶帳單，請修復授權繞過。",
+      "accepted_envelopes": {
+        "task_type": ["security"],
+        "spec_completeness": ["fully_specified", "partial"],
+        "risk_level": ["high"],
+        "risk_tags": [[]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "DELEGATE", "role": "security-executor"},
+      "security_expected": true
+    },
+    {
+      "id": "migration-payment-schema",
+      "task_description": "將 payment 資料表拆成 payment 與 payment_attempt，保留既有資料並更新讀寫流程。",
+      "accepted_envelopes": {
+        "task_type": ["judgment"],
+        "spec_completeness": ["fully_specified"],
+        "risk_level": ["low", "medium", "high"],
+        "risk_tags": [["migration"]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "DELEGATE", "role": "senior-executor"},
+      "security_expected": false
+    },
+    {
+      "id": "recon-read-only-lookup",
+      "task_description": "找出 repository 中所有呼叫 legacy_invoice API 的位置，不要修改檔案。",
+      "accepted_envelopes": {
+        "task_type": ["recon"],
+        "spec_completeness": ["fully_specified"],
+        "risk_level": ["low"],
+        "risk_tags": [[]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "DELEGATE", "role": "scout"},
+      "security_expected": false
+    },
+    {
+      "id": "mechanical-rename-symbol",
+      "task_description": "將已列出的三個檔案內 LegacyInvoiceClient 重新命名為 InvoiceClient，行為不可改變。",
+      "accepted_envelopes": {
+        "task_type": ["mechanical"],
+        "spec_completeness": ["fully_specified"],
+        "risk_level": ["low"],
+        "risk_tags": [[]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "DELEGATE", "role": "mech-executor"},
+      "security_expected": false
+    },
+    {
+      "id": "judgment-cache-strategy",
+      "task_description": "評估並實作查詢快取策略，需在一致性、延遲與失效成本之間取捨。",
+      "accepted_envelopes": {
+        "task_type": ["judgment"],
+        "spec_completeness": ["fully_specified"],
+        "risk_level": ["medium"],
+        "risk_tags": [[]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "DELEGATE", "role": "executor"},
+      "security_expected": false
+    },
+    {
+      "id": "verification-release-evidence",
+      "task_description": "只驗證 release candidate 是否通過既有測試與 artifact checksum，不要修改程式碼。",
+      "accepted_envelopes": {
+        "task_type": ["verification"],
+        "spec_completeness": ["fully_specified"],
+        "risk_level": ["medium", "high"],
+        "risk_tags": [[]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "DELEGATE", "role": "verifier"},
+      "security_expected": false
+    },
+    {
+      "id": "ambiguous-improve-dashboard",
+      "task_description": "把 dashboard 做得更好。",
+      "accepted_envelopes": {
+        "task_type": ["judgment"],
+        "spec_completeness": ["ambiguous"],
+        "risk_level": ["low", "medium"],
+        "risk_tags": [[]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "REFINE", "role": null},
+      "security_expected": false
+    },
+    {
+      "id": "partial-mechanical-export",
+      "task_description": "新增 CSV export；欄位、編碼與資料範圍尚未決定。",
+      "accepted_envelopes": {
+        "task_type": ["mechanical", "judgment"],
+        "spec_completeness": ["partial", "ambiguous"],
+        "risk_level": ["low", "medium"],
+        "risk_tags": [[]],
+        "failure_count": [0],
+        "classification_source": ["llm"]
+      },
+      "expected_route": {"action": "REFINE", "role": null},
+      "security_expected": false
+    }
+  ]
+}

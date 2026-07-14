@@ -221,6 +221,8 @@ Report schema-valid rate, field agreement, route agreement, security recall, per
 - Security recall and route agreement use documented denominators.
 - Default CI does not spend credits or invoke external models.
 
+**Phase 4 actual:** 727 runner/report/fixture/documentation lines + 358 focused test lines = 1,085 lines before this accounting note. L2 requires an explicit argument-array command, run count, invocation ceiling, and new evidence directory; it persists each result before producing a non-blocking aggregate report, while the default CI only exercises a local fake command and never calls an external model.
+
 ### Phase 5: Codex capability probe and strict adapter
 
 **Files: `adapters/codex/capability_probe.py`, `adapters/codex/compiler.py`, `adapters/codex/attestor.py`, `tests/test_codex_adapter.py`, `docs/adapter-capabilities.md`**
