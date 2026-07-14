@@ -248,6 +248,8 @@ Fail compilation when a requested required capability is not supported; non-stri
 - Missing runtime model observation remains `UNKNOWN`.
 - Live probe smoke test records the local Codex version without writing user config.
 
+**Phase 5 actual:** 756 adapter/probe/compiler/attestor/documentation/dispatcher additions + 322 focused test additions = 1,078 additions before this accounting note, with 10 replacement deletions. The bounded probe observed local `codex-cli 0.144.3`, compiles only discovered controls, keeps canonical model aliases unmapped, reports prompt-level/global limitations, preserves `UNKNOWN` without structured model evidence, and makes generic adapter dispatch support Codex.
+
 ## Integration Issues & Edge Cases
 
 1. **Upstream PR #10 may merge mid-series.** Re-fetch before each Phase; rebase only at a phase boundary and reconcile compatible controls instead of cherry-picking its conflicting role taxonomy.
