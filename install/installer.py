@@ -292,17 +292,18 @@ def _parse_json(raw: bytes, *, label: str) -> Any:
 def _frontmatter_name(content: str) -> str | None:
     if content.startswith("\ufeff"):
         raise InstallerError("agent frontmatter must not contain a UTF-8 BOM")
-    if not content.startswith("---\n"):
+    normalized = content.replace("\r\n", "\n")
+    if "\r" in normalized:
+        raise InstallerError("agent frontmatter contains an unsupported bare carriage return")
+    if not normalized.startswith("---\n"):
         if content.startswith("---"):
-            raise InstallerError("agent frontmatter opener is malformed or not LF-only")
+            raise InstallerError("agent frontmatter opener is malformed")
         return None
-    if "\r" in content:
-        raise InstallerError("agent frontmatter must use LF line endings")
-    end = content.find("\n---\n", 4)
+    end = normalized.find("\n---\n", 4)
     if end < 0:
         raise InstallerError("agent frontmatter is missing its closing delimiter")
     names: list[str] = []
-    for line in content[4:end].splitlines():
+    for line in normalized[4:end].splitlines():
         match = re.fullmatch(r"\s*name\s*:\s*([^#]+?)\s*", line)
         if match:
             names.append(match.group(1).strip().strip("'\""))
@@ -328,9 +329,21 @@ def _policy_block(content: str) -> tuple[int, int, str] | None:
     end = content.index(END_MARKER, start) + len(END_MARKER)
     if content.find(END_MARKER) < start:
         raise InstallerError("CLAUDE.md pilotfish markers are out of order")
-    if end < len(content) and content[end] == "\n":
+    if content.startswith("\r\n", end):
+        end += 2
+    elif end < len(content) and content[end] == "\n":
         end += 1
     return start, end, content[start:end]
+
+
+def _policy_block_bytes(content: str) -> bytes:
+    """Canonicalize platform line endings for owned-block identity only."""
+
+    return content.replace("\r\n", "\n").encode("utf-8")
+
+
+def _policy_block_sha256(content: str) -> str:
+    return _sha256(_policy_block_bytes(content))
 
 
 def _replace_policy(content: str, replacement: str | None) -> str:
@@ -371,12 +384,14 @@ def _replace_policy_with_separator(
         return content + separator + replacement, len(separator)
     start, end, _ = block
     if replacement is None and separator_length:
-        separator_start = start - separator_length
-        if (
-            separator_start < 0
-            or content[separator_start:start] != "\n" * separator_length
-        ):
-            raise InstallerError("owned policy separator changed after installation")
+        separator_start = start
+        for _ in range(separator_length):
+            if content[max(0, separator_start - 2) : separator_start] == "\r\n":
+                separator_start -= 2
+            elif separator_start > 0 and content[separator_start - 1] == "\n":
+                separator_start -= 1
+            else:
+                raise InstallerError("owned policy separator changed after installation")
         start = separator_start
     return content[:start] + (replacement or "") + content[end:], (
         separator_length or 0
@@ -1151,9 +1166,9 @@ class Installer:
             }
         else:
             _, _, block = existing_block
-            block_bytes = block.encode("utf-8")
-            if block_bytes == policy_source:
-                if policy_state and policy_state.get("hash") == _sha256(block_bytes):
+            canonical_block_bytes = _policy_block_bytes(block)
+            if canonical_block_bytes == _policy_block_bytes(desired_text):
+                if policy_state and policy_state.get("hash") == _sha256(canonical_block_bytes):
                     next_state["policy"] = {
                         "hash": _sha256(policy_source),
                         "file_created": bool(policy_state.get("file_created")),
@@ -1162,7 +1177,7 @@ class Installer:
                         ),
                     }
                 skipped.append(policy_rel)
-            elif policy_state and policy_state.get("hash") == _sha256(block_bytes):
+            elif policy_state and policy_state.get("hash") == _sha256(canonical_block_bytes):
                 new_text = _replace_policy(existing_text, desired_text)
                 changes.append(PlannedChange(policy_rel, "update", "replace owned marker block", _sha256(policy_raw or b"")))
                 mutations.append(
@@ -1172,7 +1187,7 @@ class Installer:
                         new_text.encode("utf-8"),
                         "replace owned marker block",
                         {
-                            "before_block_sha256": _sha256(block_bytes),
+                            "before_block_sha256": _sha256(canonical_block_bytes),
                             "after_block_sha256": _sha256(policy_source),
                             "separator_length": int(
                                 policy_state.get("separator_length", 0)
@@ -1643,7 +1658,7 @@ class Installer:
                 except UnicodeDecodeError as exc:
                     raise InstallerError("CLAUDE.md must be UTF-8") from exc
                 block = _policy_block(text)
-                if block and _sha256(block[2].encode("utf-8")) == policy_owner.get("hash"):
+                if block and _policy_block_sha256(block[2]) == policy_owner.get("hash"):
                     separator_length = int(policy_owner.get("separator_length", 0))
                     cleaned_text, _ = _replace_policy_with_separator(
                         text, None, separator_length=separator_length
@@ -2063,7 +2078,7 @@ class Installer:
         block = _policy_block(text)
         expected = record.get("after_block_sha256")
         return (block is None and expected is None) or (
-            block is not None and _sha256(block[2].encode("utf-8")) == expected
+            block is not None and _policy_block_sha256(block[2]) == expected
         )
 
     def _rollback_policy(

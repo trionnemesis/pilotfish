@@ -337,7 +337,7 @@ class InstallerTests(unittest.TestCase):
         agents = self.home / ".claude/agents"
         agents.mkdir(parents=True)
         collision = agents / "my-custom-agent.txt"
-        collision.write_text("---\nname: scout\n---\ncustom\n", encoding="utf-8")
+        collision.write_bytes(b"---\r\nname: scout\r\n---\r\ncustom\r\n")
         installer = self.installer()
         plan = installer.plan_install()
         self.assertTrue(any("my-custom-agent.txt" in item for item in plan.blockers))
@@ -352,7 +352,7 @@ class InstallerTests(unittest.TestCase):
         self.assertFalse(self.installer().plan_install().blockers)
         cases = {
             "bom.md": "\ufeff---\nname: harmless\n---\n",
-            "crlf.md": "---\r\nname: harmless\r\n---\r\n",
+            "bare-cr.md": "---\rname: harmless\r---\r",
             "duplicate.md": "---\nname: one\nname: two\n---\n",
             "unclosed.md": "---\nname: one\n",
         }
@@ -623,7 +623,9 @@ class InstallerTests(unittest.TestCase):
         unowned = claude / "agents/custom.md"
         unowned.write_text("plain custom agent\n", encoding="utf-8")
         claude_md = claude / "CLAUDE.md"
-        claude_md.write_text(claude_md.read_text(encoding="utf-8") + "user tail\n", encoding="utf-8")
+        claude_md.write_bytes(
+            claude_md.read_bytes().replace(b"\n", b"\r\n") + b"user tail\r\n"
+        )
 
         plan = installer.plan_uninstall()
         result = installer.uninstall(approval=plan.fingerprint)
@@ -739,7 +741,9 @@ class InstallerTests(unittest.TestCase):
         document = strict_json(settings)
         document["later"] = 1
         settings.write_text(json.dumps(document) + "\n", encoding="utf-8")
-        policy.write_text(policy.read_text(encoding="utf-8") + "later text\n", encoding="utf-8")
+        policy.write_bytes(
+            policy.read_bytes().replace(b"\n", b"\r\n") + b"later text\r\n"
+        )
 
         plan = installer.plan_rollback(installed.manifest)
         settings_change = next(change for change in plan.changes if change.path.endswith("settings.json"))
@@ -866,7 +870,7 @@ class InstallerTests(unittest.TestCase):
             side_effect=change_owned_key_after_outer_check,
         ):
             with self.assertRaisesRegex(
-                InstallerError, "descriptor precondition changed after planning"
+                InstallerError, "precondition changed after planning"
             ):
                 installer.rollback(installed.manifest, approval=plan.fingerprint)
 
