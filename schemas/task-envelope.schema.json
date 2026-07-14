@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pilotfish.dev/schemas/task-envelope.schema.json",
+  "title": "Pilotfish Task Envelope v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "parent_task_id",
+    "task_type",
+    "spec_completeness",
+    "risk_level",
+    "risk_tags",
+    "failure_count",
+    "classification_source",
+    "classification_evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parent_task_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "task_type": {
+      "enum": [
+        "recon",
+        "mechanical",
+        "judgment",
+        "security",
+        "verification"
+      ]
+    },
+    "spec_completeness": {
+      "enum": [
+        "fully_specified",
+        "partial",
+        "ambiguous"
+      ]
+    },
+    "risk_level": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "risk_tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "failure_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "classification_source": {
+      "enum": [
+        "manual",
+        "rule",
+        "llm"
+      ]
+    },
+    "classification_evidence": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

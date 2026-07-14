@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1",
+  "roles": {
+    "orchestrator": {
+      "role_type": "control_plane",
+      "model_alias": "best",
+      "effort": "high",
+      "allowed_tools": [],
+      "disallowed_tools": [],
+      "can_spawn": true,
+      "model_binding_source": "role_registry"
+    },
+    "scout": {
+      "role_type": "leaf",
+      "model_alias": "haiku",
+      "effort": "low",
+      "allowed_tools": ["Read", "Glob", "Grep"],
+      "disallowed_tools": ["Write", "Edit", "NotebookEdit", "Agent", "Workflow"],
+      "can_spawn": false,
+      "model_binding_source": "role_registry"
+    },
+    "Explore": {
+      "role_type": "leaf",
+      "model_alias": "haiku",
+      "effort": "low",
+      "allowed_tools": ["Read", "Glob", "Grep"],
+      "disallowed_tools": ["Write", "Edit", "NotebookEdit", "Agent", "Workflow"],
+      "can_spawn": false,
+      "model_binding_source": "role_registry"
+    },
+    "mech-executor": {
+      "role_type": "leaf",
+      "model_alias": "sonnet",
+      "effort": "low",
+      "allowed_tools": [],
+      "disallowed_tools": ["Agent", "Workflow"],
+      "can_spawn": false,
+      "model_binding_source": "role_registry"
+    },
+    "executor": {
+      "role_type": "leaf",
+      "model_alias": "sonnet",
+      "effort": "high",
+      "allowed_tools": [],
+      "disallowed_tools": ["Agent", "Workflow"],
+      "can_spawn": false,
+      "model_binding_source": "role_registry"
+    },
+    "senior-executor": {
+      "role_type": "leaf",
+      "model_alias": "opus",
+      "effort": "high",
+      "allowed_tools": [],
+      "disallowed_tools": ["Agent", "Workflow"],
+      "can_spawn": false,
+      "model_binding_source": "role_registry"
+    },
+    "verifier": {
+      "role_type": "leaf",
+      "model_alias": "opus",
+      "effort": "medium",
+      "allowed_tools": ["Read", "Glob", "Grep", "Bash"],
+      "disallowed_tools": ["Write", "Edit", "NotebookEdit", "Agent", "Workflow"],
+      "can_spawn": false,
+      "model_binding_source": "role_registry"
+    },
+    "security-executor": {
+      "role_type": "leaf",
+      "model_alias": "opus",
+      "effort": "high",
+      "allowed_tools": [],
+      "disallowed_tools": ["Agent", "Workflow"],
+      "can_spawn": false,
+      "model_binding_source": "role_registry"
+    }
+  }
+}

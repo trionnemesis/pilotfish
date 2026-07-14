@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pilotfish.dev/schemas/eval-fixture.schema.json",
+  "title": "Pilotfish L1 Routing Fixtures v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "fixtures"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/fixture"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "fixture": {
+      "type": "object",
+      "required": [
+        "id",
+        "envelope",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope": {
+          "type": "object"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "ledger-record.schema.json"
+          }
+        },
+        "expect_validation_error": {
+          "type": "boolean"
+        },
+        "expected": {
+          "type": "object",
+          "required": [
+            "action",
+            "role"
+          ],
+          "properties": {
+            "action": {
+              "enum": [
+                "DELEGATE",
+                "REFINE",
+                "TAKEOVER",
+                "BLOCK"
+              ]
+            },
+            "role": {
+              "enum": [
+                "orchestrator",
+                "scout",
+                "Explore",
+                "mech-executor",
+                "executor",
+                "senior-executor",
+                "verifier",
+                "security-executor",
+                null
+              ]
+            },
+            "reason_code": {
+              "type": "string",
+              "minLength": 1
+            },
+            "forbidden_roles": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "orchestrator",
+                  "scout",
+                  "Explore",
+                  "mech-executor",
+                  "executor",
+                  "senior-executor",
+                  "verifier",
+                  "security-executor"
+                ]
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "expected": {
+                "properties": {
+                  "action": {
+                    "const": "DELEGATE"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "properties": {
+                  "role": {
+                    "enum": [
+                      "scout",
+                      "Explore",
+                      "mech-executor",
+                      "executor",
+                      "senior-executor",
+                      "verifier",
+                      "security-executor"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "expected": {
+                "properties": {
+                  "role": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "expect_validation_error"
+            ],
+            "properties": {
+              "expect_validation_error": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "envelope": {
+                "not": {
+                  "$ref": "task-envelope.schema.json"
+                }
+              },
+              "expected": {
+                "properties": {
+                  "action": {
+                    "const": "REFINE"
+                  },
+                  "role": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "envelope": {
+                "$ref": "task-envelope.schema.json"
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}
