@@ -1,0 +1,174 @@
+{
+  "schema_version": "0.1",
+  "fixtures": [
+    {
+      "id": "recon-boundary-f1",
+      "envelope": {"schema_version": "0.1", "task_id": "recon-boundary-f1", "parent_task_id": null, "task_type": "recon", "spec_completeness": "partial", "risk_level": "low", "risk_tags": [], "failure_count": 1, "classification_source": "manual", "classification_evidence": "fixture:recon-boundary-f1"},
+      "expected": {"action": "DELEGATE", "role": "scout", "forbidden_roles": ["mech-executor", "executor", "senior-executor", "security-executor"]}
+    },
+    {
+      "id": "recon-boundary-f2",
+      "envelope": {"schema_version": "0.1", "task_id": "recon-boundary-f2", "parent_task_id": null, "task_type": "recon", "spec_completeness": "partial", "risk_level": "low", "risk_tags": [], "failure_count": 2, "classification_source": "manual", "classification_evidence": "fixture:recon-boundary-f2"},
+      "expected": {"action": "TAKEOVER", "role": null, "forbidden_roles": ["mech-executor", "executor", "senior-executor", "security-executor"]}
+    },
+    {
+      "id": "mechanical-low-f1",
+      "envelope": {"schema_version": "0.1", "task_id": "mechanical-low-f1", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 1, "classification_source": "manual", "classification_evidence": "fixture:mechanical-low-f1"},
+      "expected": {"action": "DELEGATE", "role": "mech-executor"}
+    },
+    {
+      "id": "mechanical-low-f2",
+      "envelope": {"schema_version": "0.1", "task_id": "mechanical-low-f2", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 2, "classification_source": "manual", "classification_evidence": "fixture:mechanical-low-f2"},
+      "expected": {"action": "DELEGATE", "role": "executor"}
+    },
+    {
+      "id": "mechanical-low-f3",
+      "envelope": {"schema_version": "0.1", "task_id": "mechanical-low-f3", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 3, "classification_source": "manual", "classification_evidence": "fixture:mechanical-low-f3"},
+      "expected": {"action": "DELEGATE", "role": "executor"}
+    },
+    {
+      "id": "mechanical-low-f4",
+      "envelope": {"schema_version": "0.1", "task_id": "mechanical-low-f4", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 4, "classification_source": "manual", "classification_evidence": "fixture:mechanical-low-f4"},
+      "expected": {"action": "DELEGATE", "role": "senior-executor"}
+    },
+    {
+      "id": "mechanical-low-f5",
+      "envelope": {"schema_version": "0.1", "task_id": "mechanical-low-f5", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 5, "classification_source": "manual", "classification_evidence": "fixture:mechanical-low-f5"},
+      "expected": {"action": "DELEGATE", "role": "senior-executor"}
+    },
+    {
+      "id": "mechanical-low-f6",
+      "envelope": {"schema_version": "0.1", "task_id": "mechanical-low-f6", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 6, "classification_source": "manual", "classification_evidence": "fixture:mechanical-low-f6"},
+      "expected": {"action": "TAKEOVER", "role": null}
+    },
+    {
+      "id": "standard-ladder-f1",
+      "envelope": {"schema_version": "0.1", "task_id": "standard-ladder-f1", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "medium", "risk_tags": [], "failure_count": 1, "classification_source": "manual", "classification_evidence": "fixture:standard-ladder-f1"},
+      "expected": {"action": "DELEGATE", "role": "executor"}
+    },
+    {
+      "id": "standard-ladder-f2",
+      "envelope": {"schema_version": "0.1", "task_id": "standard-ladder-f2", "parent_task_id": null, "task_type": "judgment", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 2, "classification_source": "manual", "classification_evidence": "fixture:standard-ladder-f2"},
+      "expected": {"action": "DELEGATE", "role": "senior-executor"}
+    },
+    {
+      "id": "standard-ladder-f3",
+      "envelope": {"schema_version": "0.1", "task_id": "standard-ladder-f3", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "medium", "risk_tags": [], "failure_count": 3, "classification_source": "manual", "classification_evidence": "fixture:standard-ladder-f3"},
+      "expected": {"action": "DELEGATE", "role": "senior-executor"}
+    },
+    {
+      "id": "standard-ladder-f4",
+      "envelope": {"schema_version": "0.1", "task_id": "standard-ladder-f4", "parent_task_id": null, "task_type": "judgment", "spec_completeness": "fully_specified", "risk_level": "medium", "risk_tags": [], "failure_count": 4, "classification_source": "manual", "classification_evidence": "fixture:standard-ladder-f4"},
+      "expected": {"action": "TAKEOVER", "role": null}
+    },
+    {
+      "id": "high-ladder-f1",
+      "envelope": {"schema_version": "0.1", "task_id": "high-ladder-f1", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "high", "risk_tags": [], "failure_count": 1, "classification_source": "manual", "classification_evidence": "fixture:high-ladder-f1"},
+      "expected": {"action": "DELEGATE", "role": "senior-executor"}
+    },
+    {
+      "id": "high-ladder-f2",
+      "envelope": {"schema_version": "0.1", "task_id": "high-ladder-f2", "parent_task_id": null, "task_type": "judgment", "spec_completeness": "fully_specified", "risk_level": "high", "risk_tags": [], "failure_count": 2, "classification_source": "manual", "classification_evidence": "fixture:high-ladder-f2"},
+      "expected": {"action": "TAKEOVER", "role": null}
+    },
+    {
+      "id": "security-boundary-f1-partial",
+      "envelope": {"schema_version": "0.1", "task_id": "security-boundary-f1-partial", "parent_task_id": null, "task_type": "security", "spec_completeness": "partial", "risk_level": "medium", "risk_tags": [], "failure_count": 1, "classification_source": "manual", "classification_evidence": "fixture:security-boundary-f1-partial"},
+      "expected": {"action": "DELEGATE", "role": "security-executor", "forbidden_roles": ["scout", "Explore", "mech-executor", "executor", "senior-executor", "verifier"]}
+    },
+    {
+      "id": "security-boundary-f2",
+      "envelope": {"schema_version": "0.1", "task_id": "security-boundary-f2", "parent_task_id": null, "task_type": "security", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 2, "classification_source": "manual", "classification_evidence": "fixture:security-boundary-f2"},
+      "expected": {"action": "TAKEOVER", "role": null, "forbidden_roles": ["mech-executor", "executor", "senior-executor"]}
+    },
+    {
+      "id": "verification-isolation",
+      "envelope": {"schema_version": "0.1", "task_id": "verification-isolation", "parent_task_id": null, "task_type": "verification", "spec_completeness": "fully_specified", "risk_level": "high", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:verification-isolation"},
+      "expected": {"action": "DELEGATE", "role": "verifier", "forbidden_roles": ["scout", "Explore", "mech-executor", "executor", "senior-executor", "security-executor"]}
+    },
+    {
+      "id": "verification-runtime-failure-1",
+      "envelope": {"schema_version": "0.1", "task_id": "verification-runtime-failure-1", "parent_task_id": null, "task_type": "verification", "spec_completeness": "fully_specified", "risk_level": "medium", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:verification-runtime-failure-1"},
+      "history": [
+        {"record_id": "verification-runtime-failure-1-r1", "task_id": "verification-runtime-failure-1", "sequence": 1, "timestamp": "2026-07-14T00:00:00Z", "envelope_snapshot": {"schema_version": "0.1", "task_id": "verification-runtime-failure-1", "parent_task_id": null, "task_type": "verification", "spec_completeness": "fully_specified", "risk_level": "medium", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture history"}, "role_invoked": "verifier", "model_claimed": "opus", "model_attested": null, "attestation_method": null, "attestation_status": "UNKNOWN", "token_usage": {"input": null, "output": null, "total": null}, "latency_ms": null, "execution_status": "FAILED", "verifier_verdict": null, "escalated_from": null, "supersedes_record_id": null}
+      ],
+      "expected": {"action": "DELEGATE", "role": "verifier", "forbidden_roles": ["mech-executor", "executor", "senior-executor", "security-executor"]}
+    },
+    {
+      "id": "verification-runtime-failure-2",
+      "envelope": {"schema_version": "0.1", "task_id": "verification-runtime-failure-2", "parent_task_id": null, "task_type": "verification", "spec_completeness": "fully_specified", "risk_level": "medium", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:verification-runtime-failure-2"},
+      "history": [
+        {"record_id": "verification-runtime-failure-2-r1", "task_id": "verification-runtime-failure-2", "sequence": 1, "timestamp": "2026-07-14T00:00:00Z", "envelope_snapshot": {"schema_version": "0.1", "task_id": "verification-runtime-failure-2", "parent_task_id": null, "task_type": "verification", "spec_completeness": "fully_specified", "risk_level": "medium", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture history"}, "role_invoked": "verifier", "model_claimed": "opus", "model_attested": null, "attestation_method": null, "attestation_status": "UNKNOWN", "token_usage": {"input": null, "output": null, "total": null}, "latency_ms": null, "execution_status": "FAILED", "verifier_verdict": null, "escalated_from": null, "supersedes_record_id": null},
+        {"record_id": "verification-runtime-failure-2-r2", "task_id": "verification-runtime-failure-2", "sequence": 2, "timestamp": "2026-07-14T00:01:00Z", "envelope_snapshot": {"schema_version": "0.1", "task_id": "verification-runtime-failure-2", "parent_task_id": null, "task_type": "verification", "spec_completeness": "fully_specified", "risk_level": "medium", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture history"}, "role_invoked": "verifier", "model_claimed": "opus", "model_attested": null, "attestation_method": null, "attestation_status": "UNKNOWN", "token_usage": {"input": null, "output": null, "total": null}, "latency_ms": null, "execution_status": "BLOCKED", "verifier_verdict": null, "escalated_from": null, "supersedes_record_id": null}
+      ],
+      "expected": {"action": "TAKEOVER", "role": null, "forbidden_roles": ["mech-executor", "executor", "senior-executor", "security-executor"]}
+    },
+    {
+      "id": "migration-effective-high",
+      "envelope": {"schema_version": "0.1", "task_id": "migration-effective-high", "parent_task_id": null, "task_type": "judgment", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": ["migration"], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:migration-effective-high"},
+      "expected": {"action": "DELEGATE", "role": "senior-executor"}
+    },
+    {
+      "id": "partial-mechanical-refine",
+      "envelope": {"schema_version": "0.1", "task_id": "partial-mechanical-refine", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "partial", "risk_level": "low", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:partial-mechanical-refine"},
+      "expected": {"action": "REFINE", "role": null}
+    },
+    {
+      "id": "partial-judgment-refine",
+      "envelope": {"schema_version": "0.1", "task_id": "partial-judgment-refine", "parent_task_id": null, "task_type": "judgment", "spec_completeness": "partial", "risk_level": "medium", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:partial-judgment-refine"},
+      "expected": {"action": "REFINE", "role": null}
+    },
+    {
+      "id": "partial-verification-refine",
+      "envelope": {"schema_version": "0.1", "task_id": "partial-verification-refine", "parent_task_id": null, "task_type": "verification", "spec_completeness": "partial", "risk_level": "high", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:partial-verification-refine"},
+      "expected": {"action": "REFINE", "role": null, "forbidden_roles": ["verifier"]}
+    },
+    {
+      "id": "ambiguous-non-security-refine",
+      "envelope": {"schema_version": "0.1", "task_id": "ambiguous-non-security-refine", "parent_task_id": null, "task_type": "judgment", "spec_completeness": "ambiguous", "risk_level": "medium", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:ambiguous-non-security-refine"},
+      "expected": {"action": "REFINE", "role": null}
+    },
+    {
+      "id": "history-no-downgrade-senior",
+      "envelope": {"schema_version": "0.1", "task_id": "history-no-downgrade-senior", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:history-no-downgrade-senior"},
+      "history": [
+        {"record_id": "history-no-downgrade-senior-r1", "task_id": "history-no-downgrade-senior", "sequence": 1, "timestamp": "2026-07-14T00:00:00Z", "envelope_snapshot": {"schema_version": "0.1", "task_id": "history-no-downgrade-senior", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture history"}, "role_invoked": "senior-executor", "model_claimed": "opus", "model_attested": null, "attestation_method": null, "attestation_status": "UNKNOWN", "token_usage": {"input": null, "output": null, "total": null}, "latency_ms": null, "execution_status": "SUCCEEDED", "verifier_verdict": null, "escalated_from": null, "supersedes_record_id": null}
+      ],
+      "expected": {"action": "DELEGATE", "role": "senior-executor", "forbidden_roles": ["mech-executor", "executor"]}
+    },
+    {
+      "id": "history-no-downgrade-security",
+      "envelope": {"schema_version": "0.1", "task_id": "history-no-downgrade-security", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:history-no-downgrade-security"},
+      "history": [
+        {"record_id": "history-no-downgrade-security-r1", "task_id": "history-no-downgrade-security", "sequence": 1, "timestamp": "2026-07-14T00:00:00Z", "envelope_snapshot": {"schema_version": "0.1", "task_id": "history-no-downgrade-security", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture history"}, "role_invoked": "security-executor", "model_claimed": "opus", "model_attested": null, "attestation_method": null, "attestation_status": "UNKNOWN", "token_usage": {"input": null, "output": null, "total": null}, "latency_ms": null, "execution_status": "SUCCEEDED", "verifier_verdict": null, "escalated_from": null, "supersedes_record_id": null}
+      ],
+      "expected": {"action": "TAKEOVER", "role": null, "forbidden_roles": ["mech-executor", "executor", "senior-executor"]}
+    },
+    {
+      "id": "invalid-task-type",
+      "envelope": {"schema_version": "0.1", "task_id": "invalid-task-type", "parent_task_id": null, "task_type": "deployment", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:invalid-task-type"},
+      "expect_validation_error": true,
+      "expected": {"action": "REFINE", "role": null}
+    },
+    {
+      "id": "invalid-risk-level",
+      "envelope": {"schema_version": "0.1", "task_id": "invalid-risk-level", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "critical", "risk_tags": [], "failure_count": 0, "classification_source": "manual", "classification_evidence": "fixture:invalid-risk-level"},
+      "expect_validation_error": true,
+      "expected": {"action": "REFINE", "role": null}
+    },
+    {
+      "id": "invalid-negative-failure-count",
+      "envelope": {"schema_version": "0.1", "task_id": "invalid-negative-failure-count", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": -1, "classification_source": "manual", "classification_evidence": "fixture:invalid-negative-failure-count"},
+      "expect_validation_error": true,
+      "expected": {"action": "REFINE", "role": null}
+    },
+    {
+      "id": "invalid-non-monotonic-failure-count",
+      "envelope": {"schema_version": "0.1", "task_id": "invalid-non-monotonic-failure-count", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 1, "classification_source": "manual", "classification_evidence": "fixture:invalid-non-monotonic-failure-count"},
+      "history": [
+        {"record_id": "invalid-non-monotonic-r1", "task_id": "invalid-non-monotonic-failure-count", "sequence": 1, "timestamp": "2026-07-14T00:00:00Z", "envelope_snapshot": {"schema_version": "0.1", "task_id": "invalid-non-monotonic-failure-count", "parent_task_id": null, "task_type": "mechanical", "spec_completeness": "fully_specified", "risk_level": "low", "risk_tags": [], "failure_count": 2, "classification_source": "manual", "classification_evidence": "fixture history"}, "role_invoked": "executor", "model_claimed": "sonnet", "model_attested": null, "attestation_method": null, "attestation_status": "UNKNOWN", "token_usage": {"input": null, "output": null, "total": null}, "latency_ms": null, "execution_status": "FAILED", "verifier_verdict": null, "escalated_from": null, "supersedes_record_id": null}
+      ],
+      "expected": {"action": "REFINE", "role": null}
+    }
+  ]
+}

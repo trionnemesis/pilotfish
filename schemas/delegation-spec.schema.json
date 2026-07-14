@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pilotfish.dev/schemas/delegation-spec.schema.json",
+  "title": "Pilotfish Delegation Spec v0.1",
+  "type": "object",
+  "required": [
+    "objective",
+    "constraints",
+    "done_criteria"
+  ],
+  "properties": {
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "done_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "allowed_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "forbidden_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "context_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "allowed_paths"
+      ],
+      "properties": {
+        "allowed_paths": {
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "required": [
+        "forbidden_paths"
+      ],
+      "properties": {
+        "forbidden_paths": {
+          "minItems": 1
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pilotfish.dev/schemas/role-registry.schema.json",
+  "title": "Pilotfish Role Registry v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "roles"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "roles": {
+      "type": "object",
+      "required": [
+        "orchestrator",
+        "scout",
+        "Explore",
+        "mech-executor",
+        "executor",
+        "senior-executor",
+        "verifier",
+        "security-executor"
+      ],
+      "properties": {
+        "orchestrator": {
+          "$ref": "#/$defs/orchestrator-role"
+        },
+        "scout": {
+          "$ref": "#/$defs/read-only-role"
+        },
+        "Explore": {
+          "$ref": "#/$defs/read-only-role"
+        },
+        "mech-executor": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/writing-role"
+            },
+            {
+              "properties": {
+                "model_alias": {
+                  "const": "sonnet"
+                },
+                "effort": {
+                  "const": "low"
+                }
+              }
+            }
+          ]
+        },
+        "executor": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/writing-role"
+            },
+            {
+              "properties": {
+                "model_alias": {
+                  "const": "sonnet"
+                },
+                "effort": {
+                  "const": "high"
+                }
+              }
+            }
+          ]
+        },
+        "senior-executor": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/writing-role"
+            },
+            {
+              "properties": {
+                "model_alias": {
+                  "const": "opus"
+                },
+                "effort": {
+                  "const": "high"
+                }
+              }
+            }
+          ]
+        },
+        "verifier": {
+          "$ref": "#/$defs/verifier-role"
+        },
+        "security-executor": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/writing-role"
+            },
+            {
+              "properties": {
+                "model_alias": {
+                  "const": "opus"
+                },
+                "effort": {
+                  "const": "high"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "role": {
+      "type": "object",
+      "required": [
+        "role_type",
+        "model_alias",
+        "effort",
+        "allowed_tools",
+        "disallowed_tools",
+        "can_spawn",
+        "model_binding_source"
+      ],
+      "properties": {
+        "role_type": {
+          "enum": [
+            "control_plane",
+            "leaf"
+          ]
+        },
+        "model_alias": {
+          "enum": [
+            "best",
+            "haiku",
+            "sonnet",
+            "opus"
+          ]
+        },
+        "effort": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "allowed_tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "disallowed_tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "can_spawn": {
+          "type": "boolean"
+        },
+        "model_binding_source": {
+          "const": "role_registry"
+        }
+      },
+      "additionalProperties": false
+    },
+    "orchestrator-role": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/role"
+        },
+        {
+          "properties": {
+            "role_type": {
+              "const": "control_plane"
+            },
+            "model_alias": {
+              "const": "best"
+            },
+            "effort": {
+              "const": "high"
+            },
+            "can_spawn": {
+              "const": true
+            }
+          }
+        }
+      ]
+    },
+    "read-only-role": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/role"
+        },
+        {
+          "properties": {
+            "role_type": {
+              "const": "leaf"
+            },
+            "model_alias": {
+              "const": "haiku"
+            },
+            "effort": {
+              "const": "low"
+            },
+            "allowed_tools": {
+              "minItems": 1,
+              "items": {
+                "enum": [
+                  "Read",
+                  "Glob",
+                  "Grep"
+                ]
+              }
+            },
+            "disallowed_tools": {
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "Write"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "Edit"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "NotebookEdit"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "Agent"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "Workflow"
+                  }
+                }
+              ]
+            },
+            "can_spawn": {
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "writing-role": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/role"
+        },
+        {
+          "properties": {
+            "role_type": {
+              "const": "leaf"
+            },
+            "disallowed_tools": {
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "Agent"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "Workflow"
+                  }
+                }
+              ]
+            },
+            "can_spawn": {
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "verifier-role": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/role"
+        },
+        {
+          "properties": {
+            "role_type": {
+              "const": "leaf"
+            },
+            "model_alias": {
+              "const": "opus"
+            },
+            "effort": {
+              "const": "medium"
+            },
+            "allowed_tools": {
+              "items": {
+                "enum": [
+                  "Read",
+                  "Glob",
+                  "Grep",
+                  "Bash"
+                ]
+              }
+            },
+            "disallowed_tools": {
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "Write"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "Edit"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "NotebookEdit"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "Agent"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "Workflow"
+                  }
+                }
+              ]
+            },
+            "can_spawn": {
+              "const": false
+            }
+          }
+        }
+      ]
+    }
+  }
+}
