@@ -380,7 +380,7 @@ class L1RunnerTests(unittest.TestCase):
             "python -m unittest discover -s tests -v",
             "python -m evals.runner evals/l1-routing.yaml",
             "python -m json.tool routing.yaml",
-            "python -m compileall -q router evals tests",
+            "python -m compileall -q router runtime evals tests",
             "git diff --check HEAD^1..HEAD",
         }
         for command in required_commands:

@@ -54,7 +54,7 @@
         },
         {
           "name": "Compile Python sources",
-          "run": "python -m compileall -q router evals tests"
+          "run": "python -m compileall -q router runtime evals tests"
         },
         {
           "name": "Check committed diff whitespace",

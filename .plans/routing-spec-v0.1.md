@@ -172,7 +172,7 @@ Operate on a supplied target home, merge settings keys, detect frontmatter name 
 
 ### Phase 3: Append-only ledger and best-effort attestation
 
-**Files: `runtime/ledger.py`, `runtime/attestation.py`, `runtime/models.py`, `tests/test_ledger_append_only.py`, `tests/test_attestation.py`**
+**Files: `runtime/__init__.py`, `runtime/ledger.py`, `runtime/attestation.py`, `runtime/models.py`, `tests/test_ledger_append_only.py`, `tests/test_attestation.py`, `.github/workflows/l1.yml`, `tests/test_l1_runner.py`**
 
 #### 3a. Implement append-only JSONL ledger (~300 lines)
 
@@ -194,6 +194,8 @@ Preserve nullable token/latency fields, separate execution status from verifier 
 - Missing observation returns `UNKNOWN`.
 - Global override/mismatched observation produces `MISMATCHED` and `INVALIDATED`.
 - Verifier `REFUTED` increments the parent task without becoming verifier failure.
+
+**Phase 3 actual:** 500 runtime/CI lines + 359 focused test lines = 859 lines before this accounting note. The implementation keeps an explicit output path, canonical JSONL append with in-process serialization and tail recheck, and best-effort metadata-only attestation; it does not add cryptographic claims, raw transcript persistence, or a new schema field outside the supplied v0.1 record shape.
 
 ### Phase 4: Non-blocking stochastic classifier evaluation
 
