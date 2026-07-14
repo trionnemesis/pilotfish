@@ -43,6 +43,16 @@ class BaselineManifestTests(unittest.TestCase):
             hashlib.sha256(content).hexdigest(), self.manifest["spec_sha256"]
         )
 
+    def test_spec_checkout_preserves_source_bytes(self) -> None:
+        attribute = subprocess.run(
+            ["git", "check-attr", "text", "--", "SPEC.md"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual(attribute, "SPEC.md: text: unset")
+
     def test_baseline_role_inventory_is_explicit(self) -> None:
         self.assertEqual(
             self.manifest["role_names"],

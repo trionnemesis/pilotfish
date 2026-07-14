@@ -140,7 +140,7 @@ Cover all task types/completeness/risk values, migration normalization, security
 - L1 CLI runs offline and exits non-zero on a fixture mismatch.
 - Full unittest discovery, JSON parsing, workflow syntax inspection, and `git diff --check` pass.
 
-**Phase 1 actual:** 2,837 implementation/config/schema/fixture/CI lines + 1,757 test lines = 4,594 lines. The larger-than-estimated delta comes from publishing five self-contained Draft 2020-12 schemas, explicit escalation-boundary coverage, a dependency-free schema validator, and an offline L1 guard with a stable aggregate CI gate; no Phase 2 template or installer behavior was pulled forward.
+**Phase 1 actual:** 2,842 implementation/config/schema/fixture/CI lines + 1,779 test lines = 4,621 lines. The larger-than-estimated delta comes from publishing five self-contained Draft 2020-12 schemas, explicit escalation-boundary coverage, a dependency-free schema validator, and an offline L1 guard with a stable aggregate CI gate; no Phase 2 template or installer behavior was pulled forward.
 
 ### Phase 2: Claude compiler, seven roles, and safe installer lifecycle
 
@@ -273,7 +273,7 @@ Fail compilation when a requested required capability is not supported; non-stri
 | `adapters/codex/*`, `docs/adapter-capabilities.md` | 5 | NEW — live capability probe and compiler |
 | `tests/*` | 1–5 | Phase-scoped contract, unit, golden, and temp-HOME E2E tests |
 
-**Revised implementation forecast after Phase 1**: ~6,190 lines / **Revised test forecast**: ~3,780 lines / **Imported spec and Phase 0 planning/baseline docs**: ~1,470 lines
+**Revised implementation forecast after Phase 1**: ~6,200 lines / **Revised test forecast**: ~3,800 lines / **Imported spec and Phase 0 planning/baseline docs**: ~1,470 lines
 
 ## Rollout Plan
 
