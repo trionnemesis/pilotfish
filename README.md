@@ -6,7 +6,7 @@
 
 > **Want OpenAI GPT-5.6 inside Claude Code without changing native Claude state?** [Remora](https://github.com/Nanako0129/remora-cc) packages pilotfish's role-based orchestration pattern into a session-scoped launcher for an existing Anthropic-compatible gateway. Use pilotfish to study or customize the global policy; use Remora for an approval-gated, verifiable install whose model and gateway overrides disappear with the child process.
 
-**Where this came from:** my weekly quota reset one morning, and the first thing I did with a fresh Fable 5 allowance was ask it to figure out why the previous week's had evaporated. This repo is the setup that research produced, and it's what I now run daily on every project — three config files, no runtime code. The research notes (with sources) are in [docs/](./docs/).
+**Where this came from:** my weekly quota reset one morning, and the first thing I did with a fresh Fable 5 allowance was ask it to figure out why the previous week's had evaporated. The original setup that research produced was three config files with no runtime code. This fork keeps the installed Claude surface configuration-only while adding offline Python routing, compilation, evaluation, and lifecycle tooling. The research notes (with sources) are in [docs/](./docs/).
 
 [繁體中文說明](./README.zh-TW.md)
 
@@ -51,7 +51,7 @@ Three layers, three files' worth of configuration, all under `~/.claude/`:
 | Layer | File(s) | Job |
 |---|---|---|
 | Machine | `~/.claude/settings.json` | Who orchestrates (`best`) + automatic `fallbackModel` chain |
-| Roles | `~/.claude/agents/*.md` | Six role agents, each pinned to the right model tier via one line of frontmatter |
+| Roles | `~/.claude/agents/*.md` | Seven leaf role agents, each pinned to the canonical model tier via one line of frontmatter |
 | Policy | `~/.claude/CLAUDE.md` | *How* to delegate — written in terms of roles, never model names |
 
 ```mermaid
@@ -62,34 +62,39 @@ flowchart TD
     end
     O -->|recon| S["scout / Explore<br>haiku · effort low"]
     O -->|mechanical spec| M["mech-executor<br>sonnet · effort low"]
-    O -->|judgment work| E["executor<br>opus · effort medium"]
+    O -->|judgment work| E["executor<br>sonnet · effort high"]
+    O -->|high-risk / escalated| SE["senior-executor<br>opus · effort high"]
     O -->|security-sensitive| SEC["security-executor<br>opus · effort high"]
     M --> V["verifier<br>opus · fresh context"]
     E --> V
+    SE --> V
     SEC --> V
     V -->|CONFIRMED / REFUTED| O
 ```
 
-The six roles:
+The seven roles:
 
 | Role | Model | Effort | Used for |
 |---|---|---|---|
 | `scout` | haiku | low | Read-only lookups: "where/how is X", symbol usages, config values |
 | `Explore` | haiku | low | Overrides the built-in Explore agent (see warning above) |
 | `mech-executor` | sonnet | low | Fully-specified mechanical work: pattern refactors, convention tests, docs, bulk edits |
-| `executor` | opus | medium | Implementation needing judgment: features, bug fixes, design-sensitive refactors |
+| `executor` | sonnet | high | Bounded implementation needing judgment: features, bug fixes, design-sensitive refactors |
+| `senior-executor` | opus | high | High-risk or canonically escalated implementation |
 | `verifier` | opus | medium | Fresh-context adversarial verification; returns CONFIRMED/REFUTED, never fixes |
 | `security-executor` | opus | high | Anything security-sensitive — deliberately kept off Fable 5, whose safety classifiers can refuse benign defensive-security work |
 
-The policy layer adds the operating rules: spec delegations completely in one shot (including the *why*), start with the cheapest plausible role and escalate after two failures, let every existing named role take its model only from its agent definition, set an explicit `model` only for truly ad-hoc fan-outs, schedule independent work in the background while reserving foreground agents for immediate dependencies, and gate non-trivial work behind a `verifier` pass before calling it done.
+The policy layer requires a schema-valid Task Envelope and the canonical deterministic router before dispatch. It treats `REFINE`, `TAKEOVER`, and `BLOCK` as control-plane outcomes rather than invented roles, keeps security work on its fixed lane, lets every named role take its model only from its agent definition, and gates non-trivial work behind fresh-context verification.
 
 ## Install
 
-The recommended path is to clone the pinned v1.1.5 release locally, then start Claude Code from that checkout so it can read the runbook as a local file:
+The seven-role installer is currently published on the fork's Phase 2 review branch, not the legacy upstream `v1.1.5` tag. Clone that explicit ref locally, detach at the resolved commit, inspect it, and then start Claude Code so it can read the runbook as a local file:
 
 ```sh
-git clone --branch v1.1.5 --depth 1 https://github.com/Nanako0129/pilotfish.git
+git clone --branch codex/phase-2-claude-adapter --single-branch https://github.com/trionnemesis/pilotfish.git
 cd pilotfish
+git switch --detach HEAD
+git rev-parse HEAD
 claude
 ```
 
@@ -102,55 +107,51 @@ Show me the full plan of changes and get my approval before writing anything.
 
 Claude reads the local install runbook, inspects your existing configuration, shows you a merge plan (nothing is overwritten blindly), and applies it after you approve. Installation is idempotent — running it again upgrades in place.
 
-> **Note:** Requires a reasonably current Claude Code — on older builds the `best` alias may be rejected, and `effort`/`tools` frontmatter is silently ignored (agents still run, just untuned). On native Windows without WSL, the runbook's shell snippets assume a POSIX shell; the installing agent is instructed to fall back to its own file tools. Restart your session afterwards: the agents directory is scanned at session start, and the `model` setting applies on restart.
+> **Note:** Installation requires Claude Code 2.1.207 or newer so the seven roles' tool allowlists and denylists are enforced. The local installer blocks before writing when it cannot verify that runtime floor. Restart your session afterwards: the agents directory is scanned at session start, and the `model` setting applies on restart.
 
-For convenience, you can also paste the raw GitHub prompt below. This is a mutable, unpinned convenience path: it follows `main`, so the runbook and templates may change independently between review and installation, and Claude Code's WebFetch prompt-injection protection may intercept a remote document that directly instructs an AI to install software. If it is intercepted, use the local-checkout path above; do not disable or bypass the safety check.
-
-```text
-Read https://raw.githubusercontent.com/Nanako0129/pilotfish/main/install/AGENT-INSTALL.md
-and follow it to install pilotfish into my global Claude Code configuration.
-Show me the full plan of changes and get my approval before writing anything.
-```
+Remote agent-facing install prompts are intentionally unsupported. Use a pinned local checkout; never disable or bypass WebFetch, sandbox, approval, or prompt-injection protections to install pilotfish.
 
 Prefer to do it by hand? The same steps are written for humans in [install/AGENT-INSTALL.md](./install/AGENT-INSTALL.md), and every file it installs lives under [templates/](./templates/).
 
 ## Trust & security
 
-pilotfish installs by having Claude read a runbook and template files from this repo and merge them into your global `~/.claude/` config — including a policy block that then loads into **every future session**. Treat it like any `curl | sh`: trust flows from this repo and your GitHub connection, not from the paste. The local checkout path is recommended because you can inspect the pinned release before Claude reads the runbook. Before running it:
+pilotfish compiles canonical local artifacts and merges them into your global `~/.claude/` config — including a policy block that then loads into **every future session**. Treat the checkout as executable configuration: inspect and pin it before running the installer.
 
-- **Read the actual bytes that get installed**, not just the runbook: the six files in [templates/agents/](./templates/agents/) and [templates/claude-md.orchestration.md](./templates/claude-md.orchestration.md). Nothing else is written to disk.
-- **Pin to a release tag or commit** so what you reviewed is what installs — `main` can change between the moment you read it and the moment Claude reads it. The recommended command above pins to the `v1.1.5` release tag; for the strictest guarantee, fetch and check out the full commit SHA you reviewed, then verify that checkout before launching Claude.
-- **Keep the approval gate:** Claude writes nothing until you approve the merge plan, but the plan is still a summary of the runbook. Review the local runbook and templates yourself, and do not weaken or bypass WebFetch's prompt-injection protection if the raw URL is intercepted.
+- **Read the actual bytes that get installed**, not just the runbook: the seven files in [templates/agents/](./templates/agents/), [templates/claude-md.orchestration.md](./templates/claude-md.orchestration.md), and the settings patch. The installer also writes private ownership state, backups, and rollback manifests under `~/.claude/pilotfish/`.
+- **Pin to a release tag or commit** so what you reviewed is what installs — branches can change between the moment you read them and the moment Claude reads them. The preview command above resolves the fork's Phase 2 branch and immediately detaches the checkout; record and review the printed full commit SHA before launching Claude. Once a release containing this installer exists, prefer that immutable tag or its full SHA.
+- **Keep the approval gate:** writes require the exact SHA-256 fingerprint of the reviewed plan. Do not weaken or bypass WebFetch, sandbox, approval, or prompt-injection protections.
+- **Respect the platform boundary:** POSIX mutations use descriptor-relative no-follow confinement. On Windows, the installer accepts only a target inside the current operator's resolved profile and does not support elevated or cross-user installs; that boundary lets it rely on the current profile ACL rather than claiming POSIX-equivalent directory descriptors.
 
 ## What gets installed
 
 | Target | Change | Reversible |
 |---|---|---|
-| `~/.claude/settings.json` | `model` → `"best"`, adds `fallbackModel: ["opus", "sonnet"]`, extends `availableModels` (only if you already restrict it) | Yes — keys are independent |
-| `~/.claude/agents/` | Six role agent files (listed above) | Yes — delete the files |
+| `~/.claude/settings.json` | Merge missing compiler-owned settings keys; preserve unrelated or conflicting user values | Yes — key-level compare-and-swap |
+| `~/.claude/agents/` | Seven compiler-emitted role agent files (listed above) | Yes — only unchanged owned files are removed |
 | `~/.claude/CLAUDE.md` | One `## Orchestration` section between `<!-- pilotfish:begin/end -->` markers | Yes — remove the marker block |
+| `~/.claude/pilotfish/` | Private hash-only ownership state, backups, and rollback manifests | Yes — manifests drive bounded rollback |
 
 Nothing is written into any project. That's deliberate — see the design doc.
 
 ## Updating
 
-The installer is idempotent, so **re-running the install prompt is the update** — unchanged files are skipped, the policy block is replaced in place, your settings are only touched if keys are missing. For a pinned update, first obtain the release tag you want to upgrade to, clone that tagged checkout locally, and start Claude Code from it:
+The installer is idempotent, so **re-running it from a newer pinned checkout is the update**. Unchanged files are skipped; user-modified owned content is preserved and reported. First obtain the release tag or commit you want to upgrade to, then clone and inspect that checkout locally:
 
 ```sh
-git clone --branch <RELEASE_TAG> --depth 1 https://github.com/Nanako0129/pilotfish.git
+git clone --branch <REVIEWED_FORK_REF> --single-branch https://github.com/trionnemesis/pilotfish.git
 cd pilotfish
+git switch --detach HEAD
+git rev-parse HEAD
 claude
 ```
 
 If you require a full commit SHA instead, fetch and check out that SHA before starting Claude Code.
 
-Then paste:
+Then follow the local runbook's dry-run and fingerprint-bound update commands:
 
 ```text
-Read the local file install/AGENT-INSTALL.md in the current checkout and follow its "Updating an existing install" section: detect my installed pilotfish version, show me the changelog since then, and upgrade after my approval.
+Read the local file install/AGENT-INSTALL.md in the current checkout and follow its Update section. Show the exact dry-run plan and do not write until I approve that plan's fingerprint.
 ```
-
-The raw `main` prompt in [Install](#install) remains a mutable convenience path, not a pinned or reliable update path; it may be intercepted by WebFetch prompt-injection protection, and it must not be used to bypass that protection.
 
 | Want to… | How |
 |---|---|
@@ -199,16 +200,15 @@ This repo is the packaged result of a sourced research pass (official docs, Anth
 | [docs/research.zh-TW.md](./docs/research.zh-TW.md) | 繁體中文 | 研究報告原版（the original the English version translates） |
 | [docs/design.md](./docs/design.md) | English | Why three layers, why role-based policy, why aliases over pinned IDs, effort tiering, what was deliberately left out |
 
-**Prior art & credits.** The "smart brain, cheap hands" split is not pilotfish's invention: Anthropic's own engineering writeup ([Decoupling the brain from the hands](https://www.anthropic.com/engineering/managed-agents)) frames it, Claude Code ships [`opusplan`](https://code.claude.com/docs/en/model-config) built in — if all you want is cheaper sessions, `/model opusplan` needs no repo at all — and [Rylaa/fable5-orchestrator](https://github.com/Rylaa/fable5-orchestrator) packages the same frugality thesis as a plugin with ledger-enforcing guard hooks. pilotfish's contribution is the packaging: six deliberately-few roles instead of a 100-agent catalog, a role-based policy that survives model churn, an installer that shows its plan before touching anything, and claims that were adversarially fact-checked. If a heavier, hook-enforced flavor fits you better, use theirs.
+**Prior art & credits.** The "smart brain, cheap hands" split is not pilotfish's invention: Anthropic's own engineering writeup ([Decoupling the brain from the hands](https://www.anthropic.com/engineering/managed-agents)) frames it, Claude Code ships [`opusplan`](https://code.claude.com/docs/en/model-config) built in — if all you want is cheaper sessions, `/model opusplan` needs no repo at all — and [Rylaa/fable5-orchestrator](https://github.com/Rylaa/fable5-orchestrator) packages the same frugality thesis as a plugin with ledger-enforcing guard hooks. pilotfish's contribution is the packaging: seven deliberately-few leaf roles instead of a 100-agent catalog, a canonical router plus role-based policy that survives model churn, and a fingerprint-approved installer with bounded rollback. If a heavier, hook-enforced flavor fits you better, use theirs.
 
 ## Uninstall
 
-Tell Claude Code:
+From the pinned local checkout, ask Claude Code to run the local uninstall plan:
 
 ```text
-Uninstall pilotfish: remove the six pilotfish agent files from ~/.claude/agents/,
-delete the <!-- pilotfish:begin --> ... <!-- pilotfish:end --> block from ~/.claude/CLAUDE.md,
-and offer to restore my previous "model" / remove "fallbackModel" in ~/.claude/settings.json.
+Read the local file install/AGENT-INSTALL.md and follow its Uninstall section.
+Show the exact dry-run plan and do not write until I approve that plan's fingerprint.
 ```
 
 ## License

@@ -1,117 +1,141 @@
-# pilotfish — Agent Install Runbook
+# pilotfish — Safe Local Installer Runbook
 
-> This document is written for an AI agent (Claude Code) performing the installation on a user's machine. If you are that agent: follow the steps in order, never skip the approval gate in Step 2, and prefer merging over overwriting at every point. A human can follow the same steps by hand.
+This runbook installs the canonical Claude adapter from a **local, pinned pilotfish checkout**. The installer never downloads templates, never falls back to `main`, never writes API keys, and never disables WebFetch, sandbox, approval, or prompt-injection protections.
 
-## What you are installing
+The installer changes only these targets below an explicitly supplied home:
 
-pilotfish is a global multi-model orchestration layer for Claude Code. It touches exactly three places, all under `~/.claude/`:
-
-| Target | Change |
+| Target | Owned change |
 |---|---|
-| `~/.claude/settings.json` | Set `model` to `"best"`, add `fallbackModel`, conditionally extend `availableModels` |
-| `~/.claude/agents/` | Install six role agent files: `scout.md`, `Explore.md`, `mech-executor.md`, `executor.md`, `verifier.md`, `security-executor.md` |
-| `~/.claude/CLAUDE.md` | Insert one `## Orchestration` section between `<!-- pilotfish:begin -->` and `<!-- pilotfish:end -->` markers |
+| `.claude/settings.json` | Merge missing keys from the compiler-emitted settings patch; preserve unrelated and conflicting user keys |
+| `.claude/agents/*.md` | Install exactly seven compiler-emitted leaf roles |
+| `.claude/CLAUDE.md` | Insert or update only the `pilotfish:begin` / `pilotfish:end` marker block |
+| `.claude/pilotfish/` | Private hash-only ownership state, rollback manifests, and local backups |
 
-Source of truth for the files: the [templates/](../templates/) directory of this repository. If you are running inside a local clone, use those files directly; otherwise fetch each from `https://raw.githubusercontent.com/Nanako0129/pilotfish/main/templates/...`.
+The seven roles are `scout`, `Explore`, `mech-executor`, `executor`, `senior-executor`, `verifier`, and `security-executor`. The orchestrator is virtual and does not have an agent file.
 
-> ⚠️ **Commit pinning:** If the user's install prompt referenced this runbook at a specific commit SHA instead of `main`, fetch **every template from that same SHA** — never fall back to `main`. The point of pinning is that what the user reviewed is exactly what gets installed.
+## 0. Pin and inspect the local checkout
 
-> **Portability:** Prefer your own Read / Write / Edit tools over shell commands for all file operations — they behave identically on macOS, Linux, WSL, and native Windows. The bash snippets below are references, not requirements: on native Windows (PowerShell, no Git Bash) they will not run — create directories and copy backups with your file tools, count markers by reading the file, and if `jq` is unavailable validate JSON by parsing it yourself.
+Before installing a fork or tag, verify tags with Git rather than relying only on a Releases page:
 
-## Updating an existing install
-
-When the user asks to **update** (rather than fresh-install), run this before Step 1:
-
-1. Detect the installed version: search `~/.claude/CLAUDE.md` for `pilotfish v` inside the marker block. A version comment like `<!-- pilotfish v1.1.0 -->` gives the installed version; **markers present but no version comment means a pre-v1.1.0 install** (update recommended).
-2. Fetch the latest version and changelog from the same ref you were invoked from (`VERSION` and `CHANGELOG.md` at the repo root — e.g. `https://raw.githubusercontent.com/Nanako0129/pilotfish/main/VERSION`).
-3. If already up to date, say so and stop. Otherwise show the user the changelog entries between their version and the latest, then proceed with Steps 1–4 below — the install is idempotent, so an update is just a re-run: unchanged files are skipped, the policy block is replaced in place, and settings keys are only touched if missing.
-4. If the user customized any agent file, the Step 3.3 diff will surface it — never overwrite a customization without showing the diff and asking.
-
-## Step 1 — Preflight (read-only)
-
-Gather the current state before proposing anything:
-
-1. Read `~/.claude/settings.json` (note the current `model`, and whether `fallbackModel` / `availableModels` exist). If the file is missing, you will create a minimal one.
-2. Read `~/.claude/CLAUDE.md` if it exists. Check for existing `<!-- pilotfish:begin -->` / `<!-- pilotfish:end -->` markers — their presence means this is an **upgrade**, not a fresh install.
-3. List `~/.claude/agents/` and note which of the six pilotfish filenames already exist. **Also read the `name:` frontmatter of every existing agent file (any filename)** — Claude Code resolves collisions by the `name` field, not the filename, and loads only one definition per name. If any existing agent already declares `name: scout`, `executor`, `mech-executor`, `verifier`, `security-executor`, or `Explore`, flag it as a name collision in the plan and ask the user whether to rename theirs, skip that pilotfish role, or overwrite. Likewise note any enabled **plugin** that ships agents with these names — a user-level file shadows the plugin's version (still reachable via its scoped `plugin:name`).
-4. Check whether the environment variable `CLAUDE_CODE_SUBAGENT_MODEL` is set (`echo "$CLAUDE_CODE_SUBAGENT_MODEL"`).
-
-> ⚠️ **Warning:** If `CLAUDE_CODE_SUBAGENT_MODEL` is set, it silently overrides every per-agent `model` frontmatter and defeats the entire tiering design. Flag it in your plan and recommend unsetting it. Do not unset it yourself without approval.
-
-## Step 2 — Present the plan and get approval
-
-Show the user a table of every change you intend to make: each file, the exact modification, and whether it is a create / merge / replace-between-markers / skip. Include a backup line (Step 3.1). **Do not write anything until the user approves.**
-
-## Step 3 — Apply
-
-### 3.1 Backup and directories
-
-```bash
-mkdir -p ~/.claude/backups ~/.claude/agents
-# settings backup: FIRST install only — the pristine pre-pilotfish state must be preserved
-ls ~/.claude/backups/settings.json.pilotfish-* >/dev/null 2>&1 || \
-  cp ~/.claude/settings.json ~/.claude/backups/settings.json.pilotfish-$(date +%Y%m%d-%H%M%S) 2>/dev/null || true
-# CLAUDE.md backup: every run
-cp ~/.claude/CLAUDE.md ~/.claude/backups/CLAUDE.md.pilotfish-$(date +%Y%m%d-%H%M%S) 2>/dev/null || true
+```sh
+git fetch --tags --force
+git tag -l
+git show-ref --tags
+git rev-parse HEAD
 ```
 
-> **Note:** If `~/.claude/settings.json` did not exist before this install (fresh machine), there is no settings backup — record in your final summary that the pre-install state had **no `model` key**, so a future uninstall knows to *remove* the key rather than restore a value.
+Run every command below from the reviewed checkout. `install/installer.py` calls the local canonical Claude compiler, requires exactly seven emitted roles, and byte-compares every emitted settings, agent, and policy artifact with the checked-in golden files. A stale or hand-edited golden blocks installation.
 
-### 3.2 settings.json — merge, key by key
+## 1. Read-only preflight and dry-run
 
-Never rewrite the whole file; edit only these keys and preserve everything else:
+Choose the target home explicitly. On POSIX, descriptor-relative operations remain bound to that supplied home. On Windows, `target_home` must resolve inside the current operator's profile; elevated or cross-user installs are intentionally unsupported and fail before planning. Temp-HOME tests must therefore use a directory under that current profile.
 
-| Key | Rule |
-|---|---|
-| `model` | If absent → set `"best"`. If present and different → **ask** the user: keep their value, or switch to `"best"` (explain: `best` = Fable 5 when the account has access, otherwise latest Opus — this is the frontier-fallback mechanism). If already `"best"` → no change. |
-| `fallbackModel` | If absent → add `["opus", "sonnet"]` (handles overload/unavailability, distinct from the `best` alias which handles access). If present → leave it and note it in the summary. |
-| `availableModels` | **Only if the key already exists** (it is an allowlist): ensure it contains `"opus"`, `"sonnet"`, `"haiku"`, and the chosen main-model value — append whatever is missing. If the key is absent → do not add it (absent = unrestricted, which is fine). |
+```sh
+TARGET_HOME=/explicit/user/home
+python3 -m install.installer install \
+  --target-home "$TARGET_HOME" \
+  --dry-run
+```
 
-Validate afterwards: `jq empty ~/.claude/settings.json`.
+Preflight is read-only. It:
 
-> **Note:** On older Claude Code versions the `best` alias may be rejected at startup. If the user reports that, fall back to `"opus[1m]"` (or `"opus"`), and suggest updating Claude Code. Users who want *guaranteed* 1M context even when `best` resolves to Opus can choose `"opus[1m]"` themselves — the `[1m]` suffix is documented for `sonnet`/`opus`/`opusplan`/full model IDs, not for `best`.
+1. runs `claude --version` without a shell and requires Claude Code `2.1.207` or newer, the minimum runtime for enforced tool allowlists and denylists on these seven roles;
+2. compiles and verifies the local canonical artifacts;
+3. parses `settings.json` as strict JSON, rejecting duplicate keys and non-object roots;
+4. validates marker pairing in `CLAUDE.md`;
+5. scans the frontmatter `name:` of every regular file in `.claude/agents/`, not just expected filenames;
+6. reports role collisions and preserves unowned or user-modified content;
+7. warns when the `CLAUDE_CODE_SUBAGENT_MODEL` environment key is present, without printing its value or unsetting it; and
+8. prints an exact plan with before/after hashes, file modes, warnings, blockers, and a plan `fingerprint`.
 
-### 3.3 Agent files
+An unavailable, unparseable, or older Claude Code runtime blocks install/update. It does not block uninstall or rollback. A marker error, role collision, symlinked target component, malformed JSON, stale golden artifact, or ownership-state integrity failure also blocks before writes.
 
-For each of the six files in `templates/agents/`, write it to `~/.claude/agents/<same-name>.md`:
+`--dry-run` never creates `.claude/`, a backup, a state file, or a manifest.
 
-| Existing state | Action |
-|---|---|
-| File doesn't exist, no `name:` collision (Step 1.3) | Write it |
-| File exists, identical content | Skip (report as up-to-date) |
-| File exists, different content | Show the diff, ask: overwrite (upgrade) or keep theirs |
-| A *different* file declares the same `name:` | Stop and ask (see Step 1.3) — never install a second file with a duplicate `name` |
+## 2. Review and bind approval to the exact plan
 
-> **Note:** A user-level agent named `Explore` intentionally shadows Claude Code's built-in Explore subagent to pin exploration to Haiku. This is expected, not a conflict.
+Review every `changes`, `warnings`, and `blockers` entry from the dry-run. Writes require the exact 64-character `fingerprint` from that plan:
 
-### 3.4 CLAUDE.md policy section
+```sh
+python3 -m install.installer install \
+  --target-home "$TARGET_HOME" \
+  --approve <reviewed-plan-fingerprint>
+```
 
-The canonical section content is [templates/claude-md.orchestration.md](../templates/claude-md.orchestration.md) — it already includes the begin/end markers.
+A bare approval is not accepted. The installer recomputes the plan and compares the supplied fingerprint. It also compares every target's pre-write hash and mode immediately before applying. Any change after review fails closed; already-applied files are automatically restored.
 
-Before writing, count the markers: `grep -c "pilotfish:begin" ~/.claude/CLAUDE.md`. The count must be `0` (fresh) or `1` (upgrade).
+## 3. What apply guarantees
 
-| Marker count | Action |
-|---|---|
-| File missing | Create it with the section as its content |
-| `0` | Append the section at the end (or after the first `#` heading if the file has one — either is fine) |
-| `1` | Replace exactly that one block, from its `<!-- pilotfish:begin -->` through its matching `<!-- pilotfish:end -->` inclusive (idempotent upgrade) |
-| `>1` | **Stop and ask the user** — do not blind-replace; a greedy first-begin-to-last-end replacement could delete user content sitting between two marker pairs |
+- `settings.json` is semantically merged one owned top-level key at a time. Existing unrelated keys and existing conflicting values are preserved.
+- An owned setting is updated only when its current value still matches the prior installed hash.
+- Every modified existing file is copied to a private backup before replacement. On POSIX, backup/manifest/state files are forced to `0600` and metadata directories to `0700`. Windows is restricted to the current operator's resolved profile and relies on that profile's ACL because POSIX group/world mode bits are not meaningful there; elevated or cross-user writes are not supported, while mode compare-and-swap still uses the mode observable through Python.
+- The manifest stores paths, modes, hashes, ownership, and key/segment transitions—not raw settings or environment values. A settings backup can contain the user's original JSON and must remain private.
+- Writes use a same-directory temporary file, `fsync`, and atomic replace. Existing target modes are preserved.
+- The ownership state and manifest carry integrity hashes. Rollback manifests are constrained to canonical pilotfish paths; absolute, traversal, unexpected agent, unexpected setting-key, mismatched backup, or non-private metadata is rejected.
+- A partially failed apply automatically restores the pre-operation bytes and modes and removes that failed operation's new backup artifacts and empty directories. If recovery itself fails, backups are retained and every recovery error is reported.
+- Re-running the same install is idempotent. An all-current install performs no writes and creates no new manifest.
 
-Do not modify anything outside the markers.
+Restart Claude Code after a successful install so the seven agent definitions and machine settings are reloaded.
 
-## Step 4 — Verify and hand off
+## 4. Update
 
-1. `jq empty ~/.claude/settings.json` exits 0.
-2. `ls ~/.claude/agents/` shows all six files.
-3. The markers appear exactly once in `~/.claude/CLAUDE.md`: `grep -c "pilotfish:begin" ~/.claude/CLAUDE.md` prints `1`.
-4. Read the installed policy block and verify that it says existing named roles are invoked without `model`, while only truly ad-hoc agents with no named role definition receive an explicit invocation model.
-5. Tell the user to **restart their Claude Code session**: the agents directory is scanned at session start, and the `model` setting applies on restart. After restart, `/model` should show the new default, and asking Claude "which subagent types are available?" should list the six roles (scout, Explore, mech-executor, executor, verifier, security-executor). On Claude Code before 2.1.198 you can also run `/agents` to see them; that wizard was removed in 2.1.198.
-6. Summarize what changed, what was skipped, and where the backups are.
+Update uses the same canonical compiler, preflight, ownership, and approval rules as install:
 
-## Uninstall
+```sh
+python3 -m install.installer update \
+  --target-home "$TARGET_HOME" \
+  --dry-run
 
-On request, reverse the three targets:
+python3 -m install.installer update \
+  --target-home "$TARGET_HOME" \
+  --approve <reviewed-update-fingerprint>
+```
 
-1. Delete the six files from `~/.claude/agents/` (only ones whose content matches pilotfish templates — show a diff first if they were customized).
-2. Remove the block from `<!-- pilotfish:begin -->` through `<!-- pilotfish:end -->` (inclusive) in `~/.claude/CLAUDE.md`; delete the file only if that leaves it empty and the user confirms.
-3. In `~/.claude/settings.json`: restore `model` from the **oldest** `settings.json.pilotfish-*` backup in `~/.claude/backups/` — that file is the pre-install state (Step 3.1 only ever backs up settings once, on first install). If no such backup exists, or the backup has no `model` key, **remove** the `model` key instead of leaving the pilotfish value. Remove `fallbackModel` if the user doesn't want it. Leave `availableModels` additions in place unless asked — they are harmless.
+Only an unchanged installer-owned agent, setting value, or marker block is updated. User-modified owned content is preserved and reported. A different file declaring one of the seven canonical frontmatter names is a blocking collision.
+
+## 5. Rollback one operation
+
+Every successful write operation reports a manifest path such as:
+
+```text
+.claude/pilotfish/manifests/20260714T070000.000000Z-1234abcd.json
+```
+
+Plan rollback first, using that path inside the same supplied target home:
+
+```sh
+python3 -m install.installer rollback \
+  --target-home "$TARGET_HOME" \
+  --manifest .claude/pilotfish/manifests/<operation-id>.json \
+  --dry-run
+
+python3 -m install.installer rollback \
+  --target-home "$TARGET_HOME" \
+  --manifest .claude/pilotfish/manifests/<operation-id>.json \
+  --approve <reviewed-rollback-fingerprint>
+```
+
+Rollback uses compare-and-swap at the owned setting-key and policy-segment level. Unrelated settings and text added after install are preserved. A modified owned key, marker block, agent, or state file is skipped and reported rather than overwritten.
+
+## 6. Uninstall
+
+Uninstall also requires a dry-run and fingerprint-bound approval:
+
+```sh
+python3 -m install.installer uninstall \
+  --target-home "$TARGET_HOME" \
+  --dry-run
+
+python3 -m install.installer uninstall \
+  --target-home "$TARGET_HOME" \
+  --approve <reviewed-uninstall-fingerprint>
+```
+
+Uninstall removes only unchanged installer-owned setting keys, agent files, and the owned marker block. It preserves:
+
+- unrelated settings and `CLAUDE.md` text;
+- unowned agent files;
+- any owned content changed by the user after install; and
+- rollback manifests and backups, because they may contain the only recovery copy of pre-install content.
+
+When the installer created an otherwise empty `settings.json` or `CLAUDE.md`, uninstall removes that file. A pre-existing empty file is preserved. If modified owned content remains, hash-only ownership state remains so a later uninstall can retry safely; otherwise the active state file is removed.
