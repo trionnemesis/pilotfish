@@ -30,10 +30,14 @@
           }
         },
         {
+          "name": "Fetch immutable baseline",
+          "run": "git fetch --no-tags --depth=1 origin e5b45dd2330b1ba781d9da0f80211dd657d854cf\ngit cat-file -e e5b45dd2330b1ba781d9da0f80211dd657d854cf"
+        },
+        {
           "name": "Set up Python",
           "uses": "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
           "with": {
-            "python-version": "3.11.14"
+            "python-version": "3.11.9"
           }
         },
         {

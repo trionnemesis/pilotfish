@@ -343,6 +343,7 @@ class L1RunnerTests(unittest.TestCase):
             [step["name"] for step in steps],
             [
                 "Check out repository",
+                "Fetch immutable baseline",
                 "Set up Python",
                 "Run unit tests",
                 "Run deterministic L1 fixtures",
@@ -360,8 +361,19 @@ class L1RunnerTests(unittest.TestCase):
         checkout = next(step for step in steps if step.get("name") == "Check out repository")
         self.assertIs(checkout["with"]["persist-credentials"], False)
         self.assertEqual(checkout["with"]["fetch-depth"], 2)
+        baseline = json.loads(
+            (ROOT / "baseline" / "manifest.json").read_text(encoding="utf-8")
+        )["baseline_commit"]
+        fetch_baseline = next(
+            step for step in steps if step.get("name") == "Fetch immutable baseline"
+        )
+        self.assertIn(
+            f"git fetch --no-tags --depth=1 origin {baseline}",
+            fetch_baseline["run"],
+        )
+        self.assertIn(f"git cat-file -e {baseline}", fetch_baseline["run"])
         setup = next(step for step in steps if step.get("name") == "Set up Python")
-        self.assertEqual(setup["with"]["python-version"], "3.11.14")
+        self.assertEqual(setup["with"]["python-version"], "3.11.9")
         run_commands = "\n".join(step.get("run", "") for step in steps)
 
         required_commands = {
