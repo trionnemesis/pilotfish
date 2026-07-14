@@ -357,7 +357,7 @@ prompt
 
     def test_unsupported_target_is_explicit(self) -> None:
         with self.assertRaisesRegex(ClaudeCompileError, "unsupported adapter target"):
-            compile_adapter(self.config, target="codex")
+            compile_adapter(self.config, target="telepathy")
 
 
 class ClaudeCapabilityReportTests(unittest.TestCase):

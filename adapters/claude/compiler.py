@@ -530,13 +530,21 @@ def compile_adapter(
     *,
     strict: bool = False,
     required_capabilities: Iterable[str] = (),
-) -> ClaudeCompilation:
-    """Compile ``spec`` for a named target; v0.1 implements Claude here."""
+) -> Any:
+    """Compile ``spec`` for a named target through the available adapter."""
 
-    if target != "claude":
-        raise ClaudeCompileError(f"unsupported adapter target: {target!r}")
-    return compile_claude(
-        spec,
-        strict=strict,
-        required_capabilities=required_capabilities,
-    )
+    if target == "claude":
+        return compile_claude(
+            spec,
+            strict=strict,
+            required_capabilities=required_capabilities,
+        )
+    if target == "codex":
+        from adapters.codex import compile_codex
+
+        return compile_codex(
+            spec,
+            strict=strict,
+            required_capabilities=required_capabilities,
+        )
+    raise ClaudeCompileError(f"unsupported adapter target: {target!r}")
