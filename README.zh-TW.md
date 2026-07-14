@@ -6,7 +6,7 @@
 
 > **想在 Claude Code 裡使用 OpenAI GPT-5.6，又不改動原生 Claude state？** [Remora](https://github.com/Nanako0129/remora-cc) 把 pilotfish 的角色分工模式包裝成 session-scoped launcher，連接既有的 Anthropic-compatible gateway。想研究或客製全域 orchestration policy，可以使用 pilotfish；想要經過批准、可驗證，而且 model 與 gateway override 會隨 child process 消失的安裝方式，可以使用 Remora。
 
-**這個專案的由來：** 某天早上我的週額度重置了，拿到新一週的 Fable 5 額度後做的第一件事，是要它研究上一週的額度為什麼蒸發。這個 repo 就是那次研究的落地成果，也是我現在每個專案每天都在跑的設定——三個設定檔，沒有任何 runtime 程式碼。附出處的研究筆記在 [docs/](./docs/)。
+**這個專案的由來：** 某天早上我的週額度重置了，拿到新一週的 Fable 5 額度後做的第一件事，是要它研究上一週的額度為什麼蒸發。最初的研究成果是三個設定檔，沒有 runtime 程式碼；這個 fork 仍讓實際安裝進 Claude 的部分保持 configuration-only，同時加入離線 Python routing、compilation、evaluation 與 lifecycle tooling。附出處的研究筆記在 [docs/](./docs/)。
 
 [English README](./README.md)
 
@@ -51,7 +51,7 @@
 | 層 | 檔案 | 職責 |
 |---|---|---|
 | 機器層 | `~/.claude/settings.json` | 決定誰當 orchestrator（`best`）＋自動 `fallbackModel` 切換鏈 |
-| 角色層 | `~/.claude/agents/*.md` | 六個角色 agent，各用一行 frontmatter 綁定到正確的模型層級 |
+| 角色層 | `~/.claude/agents/*.md` | 七個 leaf role agents，各用一行 frontmatter 綁定到 canonical 模型層級 |
 | 政策層 | `~/.claude/CLAUDE.md` | 規範「怎麼委派」——只寫角色，永不寫模型名 |
 
 ```mermaid
@@ -62,34 +62,39 @@ flowchart TD
     end
     O -->|偵察搜尋| S["scout / Explore<br>haiku · effort low"]
     O -->|機械性規格| M["mech-executor<br>sonnet · effort low"]
-    O -->|需判斷的實作| E["executor<br>opus · effort medium"]
+    O -->|需判斷的實作| E["executor<br>sonnet · effort high"]
+    O -->|高風險 / 升級後| SE["senior-executor<br>opus · effort high"]
     O -->|資安相關| SEC["security-executor<br>opus · effort high"]
     M --> V["verifier<br>opus · fresh context"]
     E --> V
+    SE --> V
     SEC --> V
     V -->|CONFIRMED / REFUTED| O
 ```
 
-六個角色：
+七個角色：
 
 | 角色 | 模型 | Effort | 用途 |
 |---|---|---|---|
 | `scout` | haiku | low | 唯讀查找：「X 在哪／怎麼運作」、symbol 用法、設定值 |
 | `Explore` | haiku | low | 覆寫內建 Explore agent（見上方警告） |
 | `mech-executor` | sonnet | low | 規格完整的機械性工作：pattern 重構、照慣例寫測試、文件、批次編輯 |
-| `executor` | opus | medium | 需要判斷的實作：功能開發、bug 修復、涉及設計的重構 |
+| `executor` | sonnet | high | 需要判斷的有界實作：功能開發、bug 修復、涉及設計的重構 |
+| `senior-executor` | opus | high | 高風險或 canonical escalation 後的實作 |
 | `verifier` | opus | medium | Fresh-context 對抗式驗證；回報 CONFIRMED/REFUTED，永不動手修 |
 | `security-executor` | opus | high | 一切資安相關工作——刻意不走 Fable 5，其安全分類器可能誤拒良性的防禦性資安工作 |
 
-政策層補上運作規則：委派時一次給完整規格（含背後的「為什麼」）、從最便宜的可行角色開始並在兩次失敗後升級、所有已命名角色的 model 只能來自其 agent 定義、只對真正的 ad-hoc fan-out 明確指定 `model`、可獨立推進的工作放到背景而前景只保留給立即相依、非平凡的變更在回報完成前必須通過 `verifier` 驗證。
+政策層要求每次 dispatch 前先建立 schema-valid Task Envelope，再交由 canonical deterministic router 決定。`REFINE`、`TAKEOVER`、`BLOCK` 是 control-plane outcome，不會被發明成角色；security 保持固定 lane，已命名角色的 model 只來自其 agent 定義，非平凡變更則由 fresh-context verifier 驗證。
 
 ## 安裝
 
-建議的路徑是先把釘選的 v1.1.5 release clone 到本機，再從該 checkout 啟動 Claude Code，讓它讀取本地 runbook：
+七角色 installer 目前發布在 fork 的 Phase 2 review branch，而不是舊版 upstream `v1.1.5` tag。請從這個明確 ref clone 到本機、在解析出的 commit 上 detach 並完成檢查，再啟動 Claude Code，讓它讀取本地 runbook：
 
 ```sh
-git clone --branch v1.1.5 --depth 1 https://github.com/Nanako0129/pilotfish.git
+git clone --branch codex/phase-2-claude-adapter --single-branch https://github.com/trionnemesis/pilotfish.git
 cd pilotfish
+git switch --detach HEAD
+git rev-parse HEAD
 claude
 ```
 
@@ -102,55 +107,51 @@ Show me the full plan of changes and get my approval before writing anything.
 
 Claude 會讀取本地安裝 runbook、檢查你既有的設定、先給你一份合併計畫（不會盲目覆寫任何東西），經你同意後才動手。安裝是冪等的——重跑一次等於原地升級。
 
-> **注意：** 需要較新版的 Claude Code——舊版可能拒絕 `best` alias，且 `effort`/`tools` frontmatter 會被靜默忽略（agent 仍可用，只是失去調校）。原生 Windows（無 WSL）下 runbook 的 shell 指令假設 POSIX 環境，安裝代理已被指示改用自身檔案工具處理。安裝後請重啟 session：agents 目錄在 session 啟動時掃描，`model` 設定在重啟後生效。
+> **注意：** 安裝要求 Claude Code 2.1.207 以上，才能保證七個角色的 tool allowlist／denylist 被 runtime 強制執行。若無法驗證這個版本下限，本地 installer 會在寫入前阻擋。安裝後請重啟 session：agents 目錄在 session 啟動時掃描，`model` 設定在重啟後生效。
 
-為方便起見，也可以貼上下面的 GitHub raw prompt。這是可變動、未釘選的便利路徑：它跟著 `main` 走，因此從審閱到安裝之間，runbook 與範本可能各自變動；此外，Claude Code 的 WebFetch prompt-injection 防護可能會攔截一份直接對 AI 下達安裝指示的遠端文件。若被攔截，請改用上面的本地 checkout 路徑；不要停用或繞過安全檢查。
-
-```text
-Read https://raw.githubusercontent.com/Nanako0129/pilotfish/main/install/AGENT-INSTALL.md
-and follow it to install pilotfish into my global Claude Code configuration.
-Show me the full plan of changes and get my approval before writing anything.
-```
+不支援遠端、直接對 agent 下指令的安裝 prompt。請使用釘選的本地 checkout；不要為了安裝 pilotfish 而停用或繞過 WebFetch、sandbox、approval 或 prompt-injection 防護。
 
 想手動安裝？同樣的步驟寫在 [install/AGENT-INSTALL.md](./install/AGENT-INSTALL.md)，所有安裝檔的原始範本都在 [templates/](./templates/)。
 
 ## 信任與安全
 
-pilotfish 的安裝方式，是讓 Claude 從本 repo 讀取 runbook 與範本檔、合併進你的全域 `~/.claude/` 設定——其中包含一段會載入**未來每一個 session** 的政策區塊。請把它當成任何 `curl | sh` 看待：信任來自這個 repo 與你的 GitHub 連線，而不是那段貼上的文字。建議使用本地 checkout，因為你可以先檢查釘選的 release，再讓 Claude 讀取 runbook。執行前：
+pilotfish 會從本地 canonical spec 編譯 artifacts，再合併進你的全域 `~/.claude/` 設定——其中包含一段會載入**未來每一個 session** 的政策區塊。請把 checkout 視為可執行設定；執行 installer 前先檢查並釘選版本。
 
-- **實際會被裝進去的檔案要親自讀過**，不只是 runbook：就是 [templates/agents/](./templates/agents/) 的六個檔案加上 [templates/claude-md.orchestration.md](./templates/claude-md.orchestration.md)。除此之外不會寫入任何東西。
-- **釘選到 release tag 或 commit**，確保你審過的就是實際裝的——從你讀它、到 Claude 讀它之間，`main` 是可能變動的。上面的建議指令已釘選 `v1.1.5` release tag；要最嚴格保證時，請先 fetch 並 checkout 你審閱過的完整 commit SHA，再在啟動 Claude 前驗證 checkout。
-- **保留 approval gate：** 經你同意前 Claude 不會動手，但計畫仍只是 runbook 的摘要。請自行審閱本地 runbook 與範本；若 raw URL 被攔截，也不要削弱或繞過 WebFetch 的 prompt-injection 防護。
+- **實際會被裝進去的檔案要親自讀過**，不只是 runbook：包括 [templates/agents/](./templates/agents/) 的七個檔案、[templates/claude-md.orchestration.md](./templates/claude-md.orchestration.md) 與 settings patch。Installer 也會在 `~/.claude/pilotfish/` 寫入私有 ownership state、backup 與 rollback manifest。
+- **釘選到 release tag 或 commit**，確保你審過的就是實際裝的——從你讀 branch、到 Claude 讀它之間，branch 可能變動。上面的 preview 指令會解析 fork 的 Phase 2 branch，並立即讓 checkout detach；啟動 Claude 前，請記錄並審閱印出的完整 commit SHA。未來若有包含此 installer 的 release，應優先使用其 immutable tag 或完整 SHA。
+- **保留 approval gate：** 寫入必須帶上已審閱 plan 的精確 SHA-256 fingerprint。不要削弱或繞過 WebFetch、sandbox、approval 或 prompt-injection 防護。
+- **遵守平台邊界：** POSIX mutation 使用 descriptor-relative no-follow confinement。Windows installer 只接受位於目前 operator 已解析 profile 內的 target，不支援 elevated 或 cross-user install；此邊界讓它依賴目前 profile ACL，而不宣稱具備與 POSIX 完全相同的 directory descriptor 保證。
 
 ## 安裝內容
 
 | 目標 | 變更 | 可還原 |
 |---|---|---|
-| `~/.claude/settings.json` | `model` → `"best"`、新增 `fallbackModel: ["opus", "sonnet"]`、擴充 `availableModels`（僅在你原本就有此限制時） | 可——各 key 彼此獨立 |
-| `~/.claude/agents/` | 六個角色 agent 檔（如上表） | 可——刪檔即可 |
+| `~/.claude/settings.json` | 合併缺少的 compiler-owned keys；保留無關或衝突的 user values | 可——key-level compare-and-swap |
+| `~/.claude/agents/` | 七個 compiler-emitted 角色 agent 檔（如上表） | 可——只移除未變更的 owned files |
 | `~/.claude/CLAUDE.md` | 一段 `## Orchestration`，包在 `<!-- pilotfish:begin/end -->` 標記之間 | 可——移除標記區塊 |
+| `~/.claude/pilotfish/` | 私有 hash-only ownership state、backups 與 rollback manifests | 可——由 manifest 執行有界 rollback |
 
 不會寫入任何專案目錄。這是刻意的設計——理由見設計文件。
 
 ## 更新
 
-安裝程式是冪等的，所以**把安裝 prompt 再貼一次就是更新**——沒變的檔案自動跳過、政策區塊原地替換、settings 只在缺 key 時才動。要釘選版本更新時，先取得想升級到的 release tag，把該 tag 的 checkout clone 到本機，再從裡面啟動 Claude Code：
+安裝程式是冪等的，所以**從新版且已釘選的 checkout 重跑 installer 就是更新**。沒變的檔案會跳過；使用者改過的 owned content 會被保留並回報。先取得想升級到的 release tag 或 commit，clone 並檢查該 checkout：
 
 ```sh
-git clone --branch <RELEASE_TAG> --depth 1 https://github.com/Nanako0129/pilotfish.git
+git clone --branch <REVIEWED_FORK_REF> --single-branch https://github.com/trionnemesis/pilotfish.git
 cd pilotfish
+git switch --detach HEAD
+git rev-parse HEAD
 claude
 ```
 
 如果需要改用完整 commit SHA，請先 fetch 並 checkout 該 SHA，再啟動 Claude Code。
 
-接著貼上：
+接著依本地 runbook 執行 dry-run 與 fingerprint-bound update：
 
 ```text
-Read the local file install/AGENT-INSTALL.md in the current checkout and follow its "Updating an existing install" section: detect my installed pilotfish version, show me the changelog since then, and upgrade after my approval.
+Read the local file install/AGENT-INSTALL.md in the current checkout and follow its Update section. Show the exact dry-run plan and do not write until I approve that plan's fingerprint.
 ```
-
-[安裝](#安裝)裡的 raw `main` prompt 仍是可變動的便利路徑，不是釘選或可靠的更新路徑；它可能被 WebFetch 的 prompt-injection 防護攔截，也不可以拿來繞過這道防護。
 
 | 想要…… | 做法 |
 |---|---|
@@ -199,16 +200,15 @@ Read the local file install/AGENT-INSTALL.md in the current checkout and follow 
 | [docs/research.md](./docs/research.md) | English | 研究報告的英文版（忠實翻譯） |
 | [docs/design.md](./docs/design.md) | English | 為什麼是三層、為什麼政策以角色撰寫、為什麼用 alias 不釘版本、effort 分層、以及刻意不做的事 |
 
-**先行者與致意。** 「聰明的腦、便宜的手」這個分工不是 pilotfish 發明的：Anthropic 自己的工程文（[Decoupling the brain from the hands](https://www.anthropic.com/engineering/managed-agents)）就是這個框架，Claude Code 內建 [`opusplan`](https://code.claude.com/docs/en/model-config)——如果你只想要更省的 session，`/model opusplan` 根本不需要裝任何 repo——而 [Rylaa/fable5-orchestrator](https://github.com/Rylaa/fable5-orchestrator) 早就把同樣的節流理念做成帶 ledger 強制 hook 的 plugin。pilotfish 的貢獻在打包方式：刻意只有六個角色而非上百個 agent 的目錄、寫成角色而能撐過模型換代的政策、動手前先出示計畫的安裝流程、以及經過對抗式查核的宣稱。如果你偏好更重、有 hook 強制力的路線，用他們的。
+**先行者與致意。** 「聰明的腦、便宜的手」這個分工不是 pilotfish 發明的：Anthropic 自己的工程文（[Decoupling the brain from the hands](https://www.anthropic.com/engineering/managed-agents)）就是這個框架，Claude Code 內建 [`opusplan`](https://code.claude.com/docs/en/model-config)——如果你只想要更省的 session，`/model opusplan` 根本不需要裝任何 repo——而 [Rylaa/fable5-orchestrator](https://github.com/Rylaa/fable5-orchestrator) 早就把同樣的節流理念做成帶 ledger 強制 hook 的 plugin。pilotfish 的貢獻在打包方式：刻意只有七個 leaf roles 而非上百個 agent 的目錄、canonical router 加上能撐過模型換代的角色政策，以及具 fingerprint approval 與有界 rollback 的 installer。如果你偏好更重、有 hook 強制力的路線，用他們的。
 
 ## 移除
 
-告訴 Claude Code：
+在釘選的本地 checkout 中，請 Claude Code 執行本地 uninstall plan：
 
 ```text
-Uninstall pilotfish: remove the six pilotfish agent files from ~/.claude/agents/,
-delete the <!-- pilotfish:begin --> ... <!-- pilotfish:end --> block from ~/.claude/CLAUDE.md,
-and offer to restore my previous "model" / remove "fallbackModel" in ~/.claude/settings.json.
+Read the local file install/AGENT-INSTALL.md and follow its Uninstall section.
+Show the exact dry-run plan and do not write until I approve that plan's fingerprint.
 ```
 
 ## 授權

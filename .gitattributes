@@ -1,1 +1,7 @@
 SPEC.md -text whitespace=-blank-at-eol
+
+# Claude compiler inputs and checked-in golden artifacts are byte-sensitive.
+adapters/claude/templates/** text eol=lf
+templates/agents/*.md text eol=lf
+templates/claude-md.orchestration.md text eol=lf
+templates/settings.snippet.json text eol=lf

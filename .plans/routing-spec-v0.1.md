@@ -144,7 +144,7 @@ Cover all task types/completeness/risk values, migration normalization, security
 
 ### Phase 2: Claude compiler, seven roles, and safe installer lifecycle
 
-**Files: `adapters/claude/*.py`, `adapters/claude/templates/*`, `templates/agents/*`, `templates/claude-md.orchestration.md`, `install/installer.py`, `install/AGENT-INSTALL.md`, `tests/test_claude_compiler.py`, `tests/test_installer.py`**
+**Files: `.gitattributes`, `.plans/routing-spec-v0.1.md`, `README.md`, `README.zh-TW.md`, `docs/design.md`, `adapters/__init__.py`, `adapters/claude/*.py`, `adapters/claude/templates/*`, `templates/agents/*`, `templates/claude-md.orchestration.md`, `install/__init__.py`, `install/installer.py`, `install/AGENT-INSTALL.md`, `tests/test_claude_compiler.py`, `tests/test_installer.py`, `tests/test_policy.py`, `tests/test_phase2_docs.py`**
 
 #### 2a. Compile byte-stable Claude artifacts from canonical registry (~450 lines)
 
@@ -167,6 +167,8 @@ Operate on a supplied target home, merge settings keys, detect frontmatter name 
 - Install requires explicit approval, creates backups/manifest, and is idempotent.
 - Uninstall preserves user-modified or unowned content.
 - Collision and `CLAUDE_CODE_SUBAGENT_MODEL` warnings are observable.
+
+**Phase 2 actual:** 3,783 implementation/configuration/generated-artifact/documentation additions + 1,730 test additions = 5,513 additions. The delta above the estimate comes from a transactional, target-home-scoped installer with plan-fingerprint approval, POSIX descriptor-relative no-follow confinement, a non-elevated Windows current-profile-only boundary, hash/mode compare-and-swap, private rollback manifests/backups, three-state concurrent-change recovery, cross-platform line-ending/path/permission handling, and adversarial Temp-HOME coverage; no Phase 3 ledger or attestation runtime was pulled forward.
 
 ### Phase 3: Append-only ledger and best-effort attestation
 

@@ -1,5 +1,7 @@
 # pilotfish — Design Rationale
 
+> **Historical baseline:** This document preserves the upstream v1.1.5 six-role rationale. The current fork's canonical seven-role contract, including `executor=sonnet/high` and `senior-executor=opus/high`, is defined by [SPEC.md](../SPEC.md), [routing.yaml](../routing.yaml), and the repository README. Where this historical narrative conflicts with those sources, the canonical contract wins.
+
 ## Purpose
 
 This document explains *why* pilotfish is shaped the way it is: three layers, role-based policy, aliases everywhere, effort tiers, and a verification gate. The empirical grounding (official docs, measured community numbers, subscription economics) lives in the [research report](./research.zh-TW.md); this is the argument from those facts to this design.
