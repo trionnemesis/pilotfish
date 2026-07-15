@@ -84,7 +84,7 @@ flowchart TD
 | `verifier` | opus | medium | Fresh-context 對抗式驗證；回報 CONFIRMED/REFUTED，永不動手修 |
 | `security-executor` | opus | high | 一切資安相關工作——刻意不走 Fable 5，其安全分類器可能誤拒良性的防禦性資安工作 |
 
-政策層要求每次 dispatch 前先建立 schema-valid Task Envelope，再交由 canonical deterministic router 決定。`REFINE`、`TAKEOVER`、`BLOCK` 是 control-plane outcome，不會被發明成角色；security 保持固定 lane，已命名角色的 model 只來自其 agent 定義，非平凡變更則由 fresh-context verifier 驗證。
+政策層要求每次 dispatch 前先建立 schema-valid Task Envelope，再交由 canonical deterministic router 決定。Dispatch brake 會在根因探索、trace 除錯與緊密耦合狀態傳遞仍共用同一條 evidence chain 時留在主 session；當穩定工作的委派具有正向 net benefit 時仍會委派。`REFINE`、`TAKEOVER`、`BLOCK` 是 control-plane outcome，不會被發明成角色；security 保持固定 lane，Plan 需要時先取得明確批准，已命名角色的 model 只來自其 agent 定義，非平凡變更則由 fresh-context verifier 驗證。
 
 ## 安裝
 
@@ -183,10 +183,10 @@ Read the local file install/AGENT-INSTALL.md in the current checkout and follow 
 | 為什麼便宜角色都設 `effort: low`？ | Effort 是第二大額度槓桿。Fable 5 世代的模型在 low effort 常已達前代 `xhigh` 的水準；偵察與機械性工作不需要深度思考。 |
 | 主 session 用哪個 effort？ | `high`。Fable 5 官方建議：大多數工作用 `high`，`xhigh` 留給最長時程的任務，`max` 少用——報酬遞減。 |
 | 會失去 1M context window 嗎？ | 不會——Fable 5 預設即 1M，`best` 解析到 Fable 5 時就是 1M。若想在 `best` 降級到 Opus 時也*保證* 1M，把 `model` 改設 `"opus[1m]"`（`[1m]` 後綴的文件支援範圍是 `sonnet`/`opus`/`opusplan`/完整 model ID，不含 `best`）。 |
-| Orchestrator 自己完全不動手嗎？ | 會動手——馬上要用的單檔閱讀、決策、以及你明確要*它*判斷的事。委派有開銷，政策裡寫明了這些例外。 |
+| Orchestrator 自己完全不動手嗎？ | 會動手——馬上要用的閱讀、決策、根因探索、trace 除錯、緊密耦合狀態工作，以及你明確要*它*判斷的事。委派必須有正向 net benefit。 |
 | 我的專案有自己的 CLAUDE.md，會衝突嗎？ | 檔案完全不會被動到：pilotfish 只寫 `~/.claude/` 底下。執行時 Claude Code 把專案層與使用者層記憶「疊加」載入——兩者同時生效、互不覆寫。若某個 repo 需要不同行為，在該專案的 CLAUDE.md 寫一條在地規則（例如「這個 repo 內直接動手、不委派」）——實務上較具體的指示會勝出。 |
 | 擔心 subagent 品質 | 這正是 `verifier` 的職責：獨立 fresh-context、以「推翻」為目標的驗證。官方口徑：fresh-context 驗證者優於自我批判。剩下的交給升級規則（兩次失敗 → 升一層）。注意驗證本身也不是免費的——它在 Opus 上重讀 context——所以政策把它限定在非平凡的工作。 |
-| Spawn agent 不是有額外成本嗎？ | 有——每次 spawn 都是全新 context、要重讀它負責的那部分 codebase，寫規格也花主 session 的 token。這正是政策規定「單檔閱讀與快速判斷不委派」的原因。省的地方在大量工作（搜尋、批次編輯、跑測試）：便宜層的單價差距遠大於 spawn 開銷。 |
+| Spawn agent 不是有額外成本嗎？ | 有——每次 spawn 都是全新 context、要重讀它負責的那部分 codebase，寫規格也花主 session 的 token。Dispatch brake 會讓緊密耦合的診斷留在主 session；穩定的大量工作、真正平行、隔離 ownership 與 fresh-context independence，若收益超過協調成本仍適合委派。 |
 | 怎麼快速關掉？ | **只關這個 session：** 直接跟 Claude 說「這個 session 不要委派，全部直接動手」——那只是政策文字，它立刻照辦。**只關這個 repo：** 在該 repo 的 CLAUDE.md 加一條在地規則。**整台機器：** 把 `~/.claude/CLAUDE.md` 裡的 `pilotfish:begin/end` 區塊註解掉——agent 檔留著閒置即可。切回來不必重裝。 |
 | 公司管的機器（managed）？ | Managed settings 優先於使用者層設定：managed 的 `model`、`availableModels` 白名單、或同名的 managed agent 都會蓋過 pilotfish 的使用者層安裝。重啟後角色沒生效就找管理員——pilotfish 設計上不會（也不該）繞過管理政策。 |
 

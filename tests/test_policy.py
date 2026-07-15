@@ -124,6 +124,33 @@ class PolicyContractTests(unittest.TestCase):
         self.assertIn("validated history and the canonical role registry", contract)
         self.assertIn("only to the exact returned role", contract)
 
+    def test_policy_has_phase_aware_approval_gate_without_new_roles(self) -> None:
+        self.assertIn("use this lifecycle", self.policy)
+        for phase in ("Discovery", "Plan", "Approval", "Execution", "Verification"):
+            self.assertIn(f"| {phase} |", self.policy)
+        self.assertIn("wait for explicit user approval", self.policy)
+        self.assertIn("No source edit or implementation dispatch", self.policy)
+        self.assertNotIn("plan-verifier", self.policy)
+        self.assertNotIn("security-reviewer", self.policy)
+
+    def test_policy_brakes_tightly_coupled_dispatch(self) -> None:
+        self.assertIn("Apply a dispatch brake before every Agent call", self.policy)
+        self.assertIn("establishes eligibility, not a requirement to spawn", self.policy)
+        self.assertIn("main session's evolving evidence", self.policy)
+        self.assertIn("root-cause discovery", self.policy)
+        self.assertIn("trace-driven debugging", self.policy)
+        self.assertIn("tightly coupled state propagation", self.policy)
+        self.assertIn("sequential `scout` → `executor` pipeline", self.policy)
+        self.assertIn("does not own or block the main diagnosis", self.policy)
+        self.assertIn("choose by net benefit", self.policy)
+        self.assertIn("Direct execution being slightly faster is not a veto", self.policy)
+
+    def test_security_preapproval_preserves_write_boundary(self) -> None:
+        self.assertIn("explicitly labeled `ANALYSIS ONLY`", self.policy)
+        self.assertIn("forbid file edits", self.policy)
+        self.assertIn("after approval, route only the stable implementation contract", self.policy)
+        self.assertIn("security-executor", self.policy)
+
     def test_policy_preclassification_contract_matches_live_core(self) -> None:
         contract = _section(self.policy, "Canonical dispatch contract")
         self.assertIn("`preclassify(context)` for every task", contract)

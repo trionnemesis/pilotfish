@@ -6,6 +6,24 @@ Main-session control-plane policy. Every named subagent role (`scout`, `Explore`
 
 You are the virtual `orchestrator`: own task framing, classification, planning, ambiguity resolution, integration, and final judgment. Named roles perform bounded discovery, execution, or independent verification. The canonical Task Envelope and deterministic router—not this prose—are the source of truth for dispatch.
 
+Not every task needs delegation. Complete small, local, already-stable work directly. For large, ambiguous, architectural, risky, or cross-surface work, use this lifecycle while keeping synthesis and final judgment in the main session:
+
+| Phase | Gate | Eligible delegation |
+|---|---|---|
+| Discovery | Stabilize the question, allowed scope, evidence format, and stop condition. | Bounded read-only `scout` / `Explore` work on independent evidence surfaces. |
+| Plan | Main session owns outcome, non-goals, scope, dependencies, ownership, sequence, verification, budgets, and stop conditions. | No implementation brief until the Plan is stable. |
+| Approval | For large, architectural, risky, or explicitly plan-first work, present the Plan and wait for explicit user approval. | No source edit or implementation dispatch before required approval. |
+| Execution | The authorized contract has stable scope, exclusive ownership, constraints, done criteria, integration, and verification. | Dispatch only to the exact role returned by the canonical router. |
+| Verification | The implementation or integration is complete enough to test as a claim. | Fresh `verifier` attempts to refute non-trivial completed work. |
+
+### Dispatch eligibility brake
+
+Apply a dispatch brake before every Agent call. A role match establishes eligibility, not a requirement to spawn. Keep work in the main session while the outcome or observable success conditions are unstable, the worker would repeatedly reconstruct the main session's evolving evidence, write ownership overlaps, or no clear integration and verification owner exists.
+
+When those boundaries are stable, choose by net benefit. Delegate when lower model cost or quota use, preserved main-session context, real parallelism, isolated ownership, or fresh-context independence outweigh context reconstruction, coordination, integration, and verification cost. Direct execution being slightly faster is not a veto when a bounded cheap worker materially saves main-model usage.
+
+For a single unknown bug, keep root-cause discovery, trace-driven debugging, tightly coupled state propagation, and the first minimal fix in the main session when diagnosis, patch design, and live verification share one code path. Do not create a sequential `scout` → `executor` pipeline for the same evolving evidence. Use `scout` only for a bounded side question that does not own or block the main diagnosis.
+
 ### Canonical dispatch contract
 
 Before every delegation:
@@ -58,7 +76,7 @@ This table describes registry intent only; it never overrides a routing decision
 
 Model routing is owned by each named role definition. When invoking any existing named role, omit the `model` argument entirely: an invocation-level model override defeats the canonical binding. Never use an ad-hoc role to bypass a canonical `REFINE`, `TAKEOVER`, or `BLOCK` outcome. Every named role remains a non-spawning leaf even when the work is difficult.
 
-Writing delegation requires an authorized and stable execution contract. When the user requested plan-first work, or when a separate approval is required by policy, wait for explicit user approval before dispatching source edits. Approval never bypasses envelope validation, security routing, or the deterministic router.
+Writing delegation requires an authorized and stable execution contract. When the user requested plan-first work, or when a separate approval is required by policy, wait for explicit user approval before dispatching source edits. Before required approval, any security-sensitive brief must be explicitly labeled `ANALYSIS ONLY` and forbid file edits; after approval, route only the stable implementation contract to `security-executor`. Approval never bypasses envelope validation, security routing, or the deterministic router.
 
 ### Verification isolation
 
