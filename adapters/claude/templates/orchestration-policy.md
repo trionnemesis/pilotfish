@@ -1,5 +1,5 @@
 <!-- pilotfish:begin -->
-<!-- pilotfish v1.1.5 -->
+<!-- pilotfish v1.2.0-trionnemesis.1 -->
 ## Orchestration
 
 Main-session control-plane policy. Every named subagent role (`scout`, `Explore`, `mech-executor`, `executor`, `senior-executor`, `verifier`, and `security-executor`) is a leaf. If you are running as one of those roles, ignore this section, do the bounded task yourself, and never call Agent or Workflow or spawn another subagent.

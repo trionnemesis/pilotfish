@@ -7,7 +7,7 @@ Delivery branch: `v.1.2`
 - Fork baseline: `12e0e5b` (`trionnemesis/pilotfish` `main`).
 - Upstream release tag: `v1.2.0` at `cf9f854` (`Nanako0129/pilotfish`).
 - Common ancestor: `e5b45dd` (`v1.1.5` baseline).
-- This branch does not merge upstream `main` and does not change `VERSION` to `1.2.0`.
+- This branch does not merge upstream `main` wholesale. It identifies the compatible port as downstream version `1.2.0-trionnemesis.1`, distinct from upstream `v1.2.0`.
 
 The fork's compatibility boundary is the canonical Task Envelope, deterministic router, seven-leaf role registry, append-only ledger/attestation model, and Claude/Codex adapter contracts. Any upstream change that adds a role, bypasses `route(envelope, history)`, or replaces those contracts is not a drop-in update.
 

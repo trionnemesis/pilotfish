@@ -60,7 +60,8 @@ class Phase2DocumentationTests(unittest.TestCase):
             self.assertIn("local", content.casefold())
 
         for content in documents[:2]:
-            self.assertIn("codex/phase-2-claude-adapter", content)
+            self.assertIn("git clone --branch v.1.2 --single-branch", content)
+            self.assertNotIn("codex/phase-2-claude-adapter", content)
             self.assertIn("https://github.com/trionnemesis/pilotfish.git", content)
             self.assertNotIn("git clone --branch v1.1.5", content)
             self.assertIn("cross-user", content)

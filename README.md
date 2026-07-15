@@ -8,6 +8,8 @@
 
 **Where this came from:** my weekly quota reset one morning, and the first thing I did with a fresh Fable 5 allowance was ask it to figure out why the previous week's had evaporated. The original setup that research produced was three config files with no runtime code. This fork keeps the installed Claude surface configuration-only while adding offline Python routing, compilation, evaluation, and lifecycle tooling. The research notes (with sources) are in [docs/](./docs/).
 
+**Downstream version:** `1.2.0-trionnemesis.1` selectively maps compatible upstream v1.2.0 controls onto this fork's deterministic router, seven-role registry, append-only ledger, and Claude/Codex adapter contracts. It is a trionnemesis downstream release line, not the upstream project's official `v1.2.0` release.
+
 [繁體中文說明](./README.zh-TW.md)
 
 ## Contents
@@ -88,10 +90,10 @@ The policy layer requires a schema-valid Task Envelope and the canonical determi
 
 ## Install
 
-The seven-role installer is currently published on the fork's Phase 2 review branch, not the legacy upstream `v1.1.5` tag. Clone that explicit ref locally, detach at the resolved commit, inspect it, and then start Claude Code so it can read the runbook as a local file:
+The seven-role installer is published on the fork's `v.1.2` downstream branch. Clone that explicit ref locally, detach at the resolved commit, inspect it, and then start Claude Code so it can read the runbook as a local file:
 
 ```sh
-git clone --branch codex/phase-2-claude-adapter --single-branch https://github.com/trionnemesis/pilotfish.git
+git clone --branch v.1.2 --single-branch https://github.com/trionnemesis/pilotfish.git
 cd pilotfish
 git switch --detach HEAD
 git rev-parse HEAD
@@ -118,7 +120,7 @@ Prefer to do it by hand? The same steps are written for humans in [install/AGENT
 pilotfish compiles canonical local artifacts and merges them into your global `~/.claude/` config — including a policy block that then loads into **every future session**. Treat the checkout as executable configuration: inspect and pin it before running the installer.
 
 - **Read the actual bytes that get installed**, not just the runbook: the seven files in [templates/agents/](./templates/agents/), [templates/claude-md.orchestration.md](./templates/claude-md.orchestration.md), and the settings patch. The installer also writes private ownership state, backups, and rollback manifests under `~/.claude/pilotfish/`.
-- **Pin to a release tag or commit** so what you reviewed is what installs — branches can change between the moment you read them and the moment Claude reads them. The preview command above resolves the fork's Phase 2 branch and immediately detaches the checkout; record and review the printed full commit SHA before launching Claude. Once a release containing this installer exists, prefer that immutable tag or its full SHA.
+- **Pin to a release tag or commit** so what you reviewed is what installs — branches can change between the moment you read them and the moment Claude reads them. The preview command above resolves the fork's `v.1.2` branch and immediately detaches the checkout; record and review the printed full commit SHA before launching Claude. Once a release containing this installer exists, prefer that immutable tag or its full SHA.
 - **Keep the approval gate:** writes require the exact SHA-256 fingerprint of the reviewed plan. Do not weaken or bypass WebFetch, sandbox, approval, or prompt-injection protections.
 - **Respect the platform boundary:** POSIX mutations use descriptor-relative no-follow confinement. On Windows, the installer accepts only a target inside the current operator's resolved profile and does not support elevated or cross-user installs; that boundary lets it rely on the current profile ACL rather than claiming POSIX-equivalent directory descriptors.
 

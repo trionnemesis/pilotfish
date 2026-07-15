@@ -2,6 +2,14 @@
 
 All notable changes to pilotfish. The installed version is stamped inside the policy block in `~/.claude/CLAUDE.md` (`<!-- pilotfish vX.Y.Z -->`); installs older than v1.1.0 carry no stamp.
 
+## v1.2.0-trionnemesis.1 — 2026-07-15
+
+This downstream release carries the fork's Phase 0-5 implementation forward while selectively mapping compatible upstream v1.2.0 controls. It preserves the canonical Task Envelope, deterministic router, seven-role registry, append-only ledger and attestation model, non-blocking L2 evaluation, safe Claude installer, and probe-driven Codex adapter.
+
+The orchestration policy adds a phase-aware Discovery -> Plan -> Approval -> Execution -> Verification lifecycle, a dispatch eligibility brake, positive net-benefit delegation, and an analysis-only pre-approval security boundary. Upstream Baton fixtures, six-role runtime assumptions, release metadata, and role-taxonomy changes are intentionally excluded. The compatibility decision and per-phase evidence are recorded in `docs/upstream-v1.2.0-assessment.md`.
+
+The English and Traditional Chinese install paths now point to the maintained `v.1.2` downstream branch instead of the merged and removed Phase 2 review branch.
+
 ## v1.1.5 — 2026-07-13
 
 Fix named-role model routing at the Agent invocation boundary. The orchestration policy now requires calls to every existing named role to omit `model`, leaving the role file's frontmatter as the sole model source. This prevents an invocation alias from silently overriding the intended Haiku, Sonnet, or Opus assignment. Only truly ad-hoc agents with no named role definition may set an explicit invocation model.
