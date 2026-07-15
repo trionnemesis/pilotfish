@@ -1,6 +1,6 @@
 # Upstream v1.2.0 compatibility assessment
 
-Assessment branch: `upstream-v1.2.0-assessment`
+Delivery branch: `v.1.2`
 
 ## Boundary
 
@@ -22,6 +22,21 @@ The fork's compatibility boundary is the canonical Task Envelope, deterministic 
 | `40b9b7f` read-only approval roles | Not ported wholesale | `plan-verifier` and `security-reviewer` would expand and change the canonical role taxonomy. The fork keeps explicit approval, analysis-only pre-approval, the existing security lane, and the existing outcome verifier. |
 | `1f1e76f` supported runtime gate | Already present; no change | The fork already requires Claude Code `2.1.207+` before planning writes, with installer regression coverage. |
 | `32e89b8`, `1ac02e7` release/benchmark packaging | Not ported | Release metadata and upstream replay inputs do not alter the fork's runtime contracts. |
+
+## Phase-to-v1.2 mapping matrix
+
+The Phase 0-5 work merged on 2026-07-14 remains the fork's implementation baseline. The v1.2 compatibility port changes only the policy and documentation surfaces that can preserve that baseline.
+
+| Existing phase | Preserved implementation | Upstream v1.2 control mapped onto it | v1.2 delivery change | Verification evidence |
+|---|---|---|---|---|
+| Phase 0: routing specification | `SPEC.md`, `.plans/routing-spec-v0.1.md`, and the pinned baseline manifest | Compatibility boundary for all imported controls | No specification or baseline replacement; this document records the selective-port decision | Baseline and specification tests remain in the full suite |
+| Phase 1: canonical router | `router/`, `schemas/`, `routing.yaml`, and the seven-role registry | Dispatch brake and positive net-benefit test | Policy requires every eligible delegation to remain subordinate to the canonical `route(envelope, history)` decision | Policy tests assert the brake, positive delegation paths, and unchanged role set |
+| Phase 2: Claude adapter and installer | `adapters/claude/`, `install/installer.py`, and the canonical orchestration template | Discovery -> Plan -> Approval -> Execution -> Verification lifecycle; analysis-only pre-approval security boundary | Both canonical policy copies receive the same lifecycle, brake, and approval text; compiler and installer contracts remain unchanged | Golden-template equality and installer regression coverage remain in the full suite |
+| Phase 3: ledger and attestation | `runtime/ledger.py`, `runtime/attestation.py`, and ledger schemas | Verification gate semantics | No Baton trace format is imported; verification continues to emit fork-native append-only evidence and uncertainty remains `UNKNOWN` | Ledger append-only and attestation tests remain unchanged |
+| Phase 4: non-blocking L2 evaluation | `evals/l2_runner.py`, classifier fixtures, and reports | Delegation eligibility guidance | No upstream six-role benchmark or classifier becomes runtime authority; the L2 lane stays advisory and non-blocking | L2 regression tests remain unchanged |
+| Phase 5: Codex adapter | `adapters/codex/` capability probe, compiler, and attestor | Cross-harness compatibility boundary | No Claude-specific upstream role or Baton fixture is added to the Codex contract | Codex probe, compiler, and attestation tests remain unchanged |
+
+This matrix is intentionally asymmetric: compatible policy controls are adapted onto the fork, while upstream runtime structure, role taxonomy, fixtures, release metadata, and replay packaging are excluded.
 
 ## Preserved invariants
 
