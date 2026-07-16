@@ -253,13 +253,21 @@ def _capability_report(
         "target": "codex",
         "cli": {
             "available": probe.available,
+            "binary_available": probe.binary_available,
             "executable": probe.executable,
             "version": probe.version,
+            "minimum_supported": probe.minimum_version,
+            "stable_version": probe.stable_version,
+            "compatible": probe.compatible,
+            "incompatibility": probe.incompatibility,
         },
         "probe": {
             "commands": probe_document["commands"],
             "surfaces": probe_document["surfaces"],
+            "config_load": probe.config_load,
         },
+        "target_configuration": probe.target_configuration,
+        "future_project_overrides": probe.future_project_overrides,
         "capabilities": probe_document["capabilities"],
         "evidence": probe_document["capability_evidence"],
         "required_capabilities": list(required),
@@ -284,6 +292,11 @@ def compile_codex(
     selected_probe = probe_codex() if probe is None else probe
     if not isinstance(selected_probe, CodexProbeResult):
         raise CodexCompileError("probe must be a CodexProbeResult")
+    if strict and not selected_probe.compatible:
+        raise CodexCompileError(
+            "strict Codex compile rejected incompatible probe: "
+            + str(selected_probe.incompatibility)
+        )
     required = _normalize_required(required_capabilities)
     capabilities = selected_probe.capability_map()
     unavailable = tuple(name for name in required if capabilities[name] != "supported")

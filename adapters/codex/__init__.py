@@ -3,6 +3,7 @@
 from .attestor import attest_codex
 from .capability_probe import (
     CAPABILITY_ORDER,
+    MINIMUM_CODEX_VERSION,
     SURFACE_ORDER,
     CodexProbeResult,
     probe_codex,
@@ -18,6 +19,7 @@ from .compiler import (
 
 __all__ = [
     "CAPABILITY_ORDER",
+    "MINIMUM_CODEX_VERSION",
     "SURFACE_ORDER",
     "CodexArtifact",
     "CodexCapabilityReport",

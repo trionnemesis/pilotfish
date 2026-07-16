@@ -48,15 +48,15 @@ classes; an isolated generated-config probe accepts 0.144.5 and never touches th
 
 ### Tests for User Story 3
 
-- [ ] T005 [US3] Add red fixtures for missing binary, below-floor, prerelease, unparsable version, missing/disabled `multi_agent`, partial/timeout normalization, and supported 0.144.5 in `tests/test_codex_adapter.py` (FR-004, FR-005, FR-006, CSR-001, SC-003)
-- [ ] T006 [US3] Add red assertions for command hashes, minimum version, binary capability, exact-target status, future-project `unknown`, config-load result, deterministic warnings, and no raw output leakage in `tests/test_codex_adapter.py` (FR-004, FR-005, CSR-002, CSR-005)
+- [x] T005 [US3] Add red fixtures for missing binary, below-floor, prerelease, unparsable version, missing/disabled `multi_agent`, partial/timeout normalization, and supported 0.144.5 in `tests/test_codex_adapter.py` (FR-004, FR-005, FR-006, CSR-001, SC-003)
+- [x] T006 [US3] Add red assertions for command hashes, minimum version, binary capability, exact-target status, future-project `unknown`, config-load result, deterministic warnings, and no raw output leakage in `tests/test_codex_adapter.py` (FR-004, FR-005, CSR-002, CSR-005)
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Extend `adapters/codex/capability_probe.py` with stable SemVer/prerelease handling, `codex features list`, exact five-case classification, bounded isolated agent-config loading, and deterministic evidence (FR-004, FR-005, FR-006, CSR-001)
-- [ ] T008 [US3] Update capability-report construction and strict gating in `adapters/codex/compiler.py` without yet changing the legacy artifact inventory (FR-005, FR-006, CSR-002, SC-003)
-- [ ] T009 [P] [US3] Export the minimum-version and probe contracts from `adapters/codex/__init__.py` and preserve generic adapter dispatch compatibility in `adapters/__init__.py` (FR-004, FR-012)
-- [ ] T010 [US3] Run `python3 -m unittest tests.test_codex_adapter -v` and verify live/isolated probes create no user-state diff in `tests/test_codex_adapter.py` (FR-006, CSR-005, SC-003)
+- [x] T007 [US3] Extend `adapters/codex/capability_probe.py` with stable SemVer/prerelease handling, `codex features list`, exact five-case classification, bounded isolated agent-config loading, and deterministic evidence (FR-004, FR-005, FR-006, CSR-001)
+- [x] T008 [US3] Update capability-report construction and strict gating in `adapters/codex/compiler.py` without yet changing the legacy artifact inventory (FR-005, FR-006, CSR-002, SC-003)
+- [x] T009 [P] [US3] Export the minimum-version and probe contracts from `adapters/codex/__init__.py` and preserve generic adapter dispatch compatibility in `adapters/__init__.py` (FR-004, FR-012)
+- [x] T010 [US3] Run `python3 -m unittest tests.test_codex_adapter -v` and verify live/isolated probes create no user-state diff in `tests/test_codex_adapter.py` (FR-006, CSR-005, SC-003)
 
 **Checkpoint**: Commit as `feat(codex): add native compatibility gate`.
 
@@ -208,7 +208,9 @@ Populate this section as tasks complete; do not predict results.
 - Spec baseline: `python3 -m unittest discover -s tests -v` passed 214 tests with 2
   Windows-only skips on 2026-07-16; all 25 requirements are mapped, all 36 tasks
   match the required format, and cross-artifact analysis found 0 CRITICAL/HIGH issues.
-- US3 compatibility: pending
+- US3 compatibility: red import failure confirmed before implementation; 21 adapter tests
+  passed with `ResourceWarning` promoted to errors; the five-command isolated probe accepted
+  pinned stable `@openai/codex@0.144.5`, and the live-home hash test observed no config change.
 - US2 native roles: pending
 - US1 installer: pending
 - US4 docs and full verification: pending

@@ -12,6 +12,7 @@ from unittest import mock
 
 from adapters.codex import (
     CAPABILITY_ORDER,
+    MINIMUM_CODEX_VERSION,
     CodexCompileError,
     attest_codex,
     compile_codex,
@@ -48,8 +49,13 @@ Options:
   --json
   --dangerously-bypass-approvals-and-sandbox
 """
+RECORDED_FEATURES = """fast_mode experimental false
+multi_agent stable true
+"""
+RECORDED_CONFIG_LOAD = "generated agent config accepted\n"
 
 FAKE_CODEX = r'''
+import json
 import os
 import sys
 from pathlib import Path
@@ -84,6 +90,18 @@ Options:
   --json
   --dangerously-bypass-approvals-and-sandbox
 """)
+elif args == ["features", "list"]:
+    print("multi_agent stable true")
+elif args == ["app-server", "--stdio"]:
+    agent_file = Path(os.environ["CODEX_HOME"], "agents", "pilotfish-probe.toml")
+    if not agent_file.is_file():
+        raise SystemExit(3)
+    for line in sys.stdin:
+        message = json.loads(line)
+        if message.get("id") == 0:
+            print(json.dumps({"id": 0, "result": {"codexHome": os.environ["CODEX_HOME"]}}), flush=True)
+        elif message.get("id") == 1:
+            print(json.dumps({"id": 1, "result": {"config": {}}}), flush=True)
 else:
     raise SystemExit(2)
 '''
@@ -91,9 +109,11 @@ else:
 
 def recorded_probe():
     return probe_from_outputs(
-        version_output="codex-cli 0.144.3\n",
+        version_output="codex-cli 0.144.5\n",
         root_help=RECORDED_ROOT_HELP,
         exec_help=RECORDED_EXEC_HELP,
+        features_output=RECORDED_FEATURES,
+        config_load_output=RECORDED_CONFIG_LOAD,
     )
 
 
@@ -101,7 +121,13 @@ class CodexProbeTests(unittest.TestCase):
     def test_recorded_probe_covers_supported_degraded_and_unsupported(self) -> None:
         probe = recorded_probe()
         self.assertTrue(probe.available)
-        self.assertEqual(probe.version, "0.144.3")
+        self.assertTrue(probe.binary_available)
+        self.assertTrue(probe.compatible)
+        self.assertEqual(probe.minimum_version, MINIMUM_CODEX_VERSION)
+        self.assertEqual(probe.version, "0.144.5")
+        self.assertTrue(probe.config_load)
+        self.assertEqual(probe.target_configuration, "unknown")
+        self.assertEqual(probe.future_project_overrides, "unknown")
         self.assertEqual(tuple(probe.capability_map()), CAPABILITY_ORDER)
         self.assertEqual(
             set(probe.capability_map().values()),
@@ -113,6 +139,87 @@ class CodexProbeTests(unittest.TestCase):
         self.assertEqual(
             probe.capability_map()["runtime_model_observation"], "unsupported"
         )
+
+    def test_exact_five_incompatible_classes_fail_closed(self) -> None:
+        cases = {
+            "missing_binary": dict(
+                version_output="",
+                root_help="",
+                exec_help="",
+                features_output="",
+                config_load_output="",
+                returncodes=(None, None, None, None, None),
+                errors=(
+                    "executable not found",
+                    "executable not found",
+                    "executable not found",
+                    "executable not found",
+                    "executable not found",
+                ),
+            ),
+            "below_minimum": dict(version_output="codex-cli 0.144.4\n"),
+            "prerelease": dict(version_output="codex-cli 0.145.0-alpha.1\n"),
+            "unparsable_version": dict(version_output="codex-cli latest\n"),
+            "required_surface": dict(features_output="multi_agent stable false\n"),
+        }
+        defaults = {
+            "version_output": "codex-cli 0.144.5\n",
+            "root_help": RECORDED_ROOT_HELP,
+            "exec_help": RECORDED_EXEC_HELP,
+            "features_output": RECORDED_FEATURES,
+            "config_load_output": RECORDED_CONFIG_LOAD,
+        }
+        for expected, overrides in cases.items():
+            with self.subTest(expected=expected):
+                probe = probe_from_outputs(**(defaults | overrides))
+                self.assertFalse(probe.compatible)
+                self.assertEqual(probe.incompatibility, expected)
+                with self.assertRaisesRegex(CodexCompileError, expected):
+                    compile_codex(probe=probe, strict=True)
+
+    def test_missing_multi_agent_and_config_rejection_share_required_surface(self) -> None:
+        for features, config in (
+            ("", RECORDED_CONFIG_LOAD),
+            ("multi_agent stable false\n", RECORDED_CONFIG_LOAD),
+            (RECORDED_FEATURES, ""),
+        ):
+            with self.subTest(features=features, config=bool(config)):
+                probe = probe_from_outputs(
+                    version_output="codex-cli 0.144.5\n",
+                    root_help=RECORDED_ROOT_HELP,
+                    exec_help=RECORDED_EXEC_HELP,
+                    features_output=features,
+                    config_load_output=config,
+                )
+                self.assertEqual(probe.incompatibility, "required_surface")
+
+    def test_partial_and_timeout_evidence_is_normalized_and_bounded(self) -> None:
+        probe = probe_from_outputs(
+            version_output="x" * 300_000,
+            root_help=RECORDED_ROOT_HELP,
+            exec_help=RECORDED_EXEC_HELP,
+            features_output=RECORDED_FEATURES,
+            config_load_output=RECORDED_CONFIG_LOAD,
+            returncodes=(None, 0, 0, 0, 0),
+            errors=("command timed out", None, None, None, None),
+        )
+        self.assertEqual(probe.incompatibility, "unparsable_version")
+        self.assertEqual(len(probe.commands[0].stdout), 262_144)
+        self.assertEqual(probe.commands[0].error, "command timed out")
+
+    def test_target_and_future_override_boundaries_are_explicit(self) -> None:
+        arguments = dict(
+            version_output="codex-cli 0.144.5\n",
+            root_help=RECORDED_ROOT_HELP,
+            exec_help=RECORDED_EXEC_HELP,
+            features_output=RECORDED_FEATURES,
+            config_load_output=RECORDED_CONFIG_LOAD,
+            target_configuration="enabled",
+        )
+        probe = probe_from_outputs(**arguments)
+        self.assertEqual(probe.target_configuration, "enabled")
+        self.assertEqual(probe.future_project_overrides, "unknown")
+        self.assertEqual(probe.warnings, probe_from_outputs(**arguments).warnings)
 
     def test_json_events_do_not_claim_runtime_model_observation(self) -> None:
         probe = recorded_probe()
@@ -149,7 +256,7 @@ class CodexProbeTests(unittest.TestCase):
         self.assertEqual(probe.version, "9.9.9")
         self.assertEqual(
             [item.name for item in probe.commands],
-            ["version", "root_help", "exec_help"],
+            ["version", "root_help", "exec_help", "features", "config_load"],
         )
 
     @unittest.skipUnless(shutil.which("codex"), "Codex CLI is not installed")
@@ -219,8 +326,10 @@ class CodexCompilerTests(unittest.TestCase):
             version_output="",
             root_help="",
             exec_help="",
-            returncodes=(None, None, None),
-            errors=("missing", "missing", "missing"),
+            features_output="",
+            config_load_output="",
+            returncodes=(None, None, None, None, None),
+            errors=("missing", "missing", "missing", "missing", "missing"),
         )
         unavailable_policy = json.loads(
             next(
@@ -266,10 +375,10 @@ class CodexCompilerTests(unittest.TestCase):
     def test_non_strict_mode_preserves_required_degradation_warning(self) -> None:
         compilation = compile_codex(
             probe=self.probe,
-            required_capabilities=("per_role_model_binding",),
+            required_capabilities=("per_role_tool_policy",),
         )
         report = compilation.capability_report.to_dict()
-        self.assertEqual(report["capabilities"]["per_role_model_binding"], "degraded")
+        self.assertEqual(report["capabilities"]["per_role_tool_policy"], "degraded")
         self.assertTrue(
             any("not fully supported" in warning for warning in report["warnings"])
         )
@@ -287,9 +396,26 @@ class CodexCompilerTests(unittest.TestCase):
         report = compile_codex(probe=self.probe).capability_report.to_dict()
         serialized = json.dumps(report)
         self.assertNotIn(RECORDED_EXEC_HELP, serialized)
-        self.assertEqual(report["cli"]["version"], "0.144.3")
+        self.assertEqual(report["cli"]["version"], "0.144.5")
+        self.assertEqual(report["cli"]["minimum_supported"], "0.144.5")
+        self.assertTrue(report["cli"]["compatible"])
+        self.assertTrue(report["probe"]["config_load"])
+        self.assertEqual(report["target_configuration"], "unknown")
+        self.assertEqual(report["future_project_overrides"], "unknown")
         for command in report["probe"]["commands"]:
             self.assertRegex(command["stdout_sha256"], r"^[0-9a-f]{64}$")
+
+    def test_capability_report_does_not_leak_raw_probe_output(self) -> None:
+        marker = "PRIVATE-PROBE-MARKER"
+        probe = probe_from_outputs(
+            version_output="codex-cli 0.144.5\n",
+            root_help=RECORDED_ROOT_HELP + marker,
+            exec_help=RECORDED_EXEC_HELP + marker,
+            features_output=RECORDED_FEATURES + marker,
+            config_load_output=RECORDED_CONFIG_LOAD,
+        )
+        report = json.dumps(compile_codex(probe=probe).capability_report.to_dict())
+        self.assertNotIn(marker, report)
 
 
 class CodexAttestorTests(unittest.TestCase):
