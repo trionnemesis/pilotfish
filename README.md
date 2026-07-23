@@ -10,6 +10,34 @@
 
 **Downstream version:** `1.2.0-trionnemesis.1` selectively maps compatible upstream v1.2.0 controls onto this fork's deterministic router, seven-role registry, append-only ledger, and Claude/Codex adapter contracts. It is a trionnemesis downstream release line, not the upstream project's official `v1.2.0` release.
 
+**Ownership and attribution:** this repository is an independently maintained
+MIT-licensed derivative of
+[Nanako0129/pilotfish](https://github.com/Nanako0129/pilotfish). The original
+copyright and MIT permission notice remain in [LICENSE](./LICENSE);
+trionnemesis maintains the downstream routing core, adapter work, tests, and
+release line. “Independent” describes maintenance and product direction, not
+original authorship of the upstream work.
+
+### Claude Code ↔ Codex adapter matrix
+
+The canonical router and seven leaf-role contracts are vendor-neutral. Each
+adapter compiles that intent only into controls its target can represent:
+
+| Contract surface | Claude Code adapter | Codex adapter on this branch |
+|---|---|---|
+| Main policy | marker block for `~/.claude/CLAUDE.md` | marker block for `AGENTS.md` integration |
+| Leaf roles | seven `agents/*.md` definitions | seven native custom-agent TOML definitions |
+| Model binding | Claude aliases in agent frontmatter | native `model` + `model_reasoning_effort` |
+| Read-only roles | positive tools plus denied write tools | native `sandbox_mode = "read-only"`; positive tool lists remain prompt guidance |
+| No child delegation | denied Claude agent/workflow tools | prompt guidance; Codex `agents.max_depth` is intentionally not claimed because multi-agent V2 ignores it |
+| Capability evidence | compiler report + runtime checks | isolated CLI/config probe + capability report |
+| Install/rollback | fingerprint-approved installer available | compiler preview only; Codex installer and rollback backend are not released yet |
+
+The Codex compiler therefore represents a real downstream product direction,
+but it is not yet advertised as a one-command Codex install. See
+[adapter capability discovery](./docs/adapter-capabilities.md) for the exact
+verified and degraded boundaries.
+
 [繁體中文說明](./README.zh-TW.md)
 
 ## Contents
@@ -216,3 +244,7 @@ Show the exact dry-run plan and do not write until I approve that plan's fingerp
 ## License
 
 [MIT](./LICENSE)
+
+Based on [Nanako0129/pilotfish](https://github.com/Nanako0129/pilotfish).
+Original copyright and the complete MIT permission notice are preserved in the
+license file.

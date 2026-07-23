@@ -62,9 +62,6 @@ developer_instructions = "Remain read-only and do not spawn child agents."
 model = "gpt-5.6-terra"
 model_reasoning_effort = "low"
 sandbox_mode = "read-only"
-
-[agents]
-max_depth = 1
 '''
 
 
@@ -271,7 +268,7 @@ def _classify(
     capabilities = {
         "per_role_model_binding": "supported" if compatible else "unsupported",
         "per_role_tool_policy": "degraded" if compatible else "unsupported",
-        "child_spawn_control": "supported" if compatible else "unsupported",
+        "child_spawn_control": "degraded" if compatible else "unsupported",
         "fresh_context_verifier": "supported" if compatible else "unsupported",
         "runtime_model_observation": "unsupported",
         "isolated_parallel_writes": "degraded" if compatible else "unsupported",
@@ -288,9 +285,10 @@ def _classify(
             else "compatible per-role sandbox configuration was not verified"
         ),
         "child_spawn_control": (
-            "agents.max_depth loaded in isolated leaf configuration"
+            "leaf instructions prohibit delegation; no portable native role-level control "
+            "is verified because agents.max_depth is ignored by multi-agent V2"
             if compatible
-            else "compatible leaf depth configuration was not verified"
+            else "compatible custom-agent instructions were not verified"
         ),
         "fresh_context_verifier": (
             "custom agent + ephemeral exec + read-only sandbox + output schema"
@@ -313,6 +311,7 @@ def _classify(
         (
             "future project and managed overrides remain UNKNOWN until session evaluation",
             "positive per-role tool allowlists are not independently enforced",
+            "leaf no-spawn behavior is prompt guidance under multi-agent V2",
             "runtime model observation remains UNKNOWN without sourced structured evidence",
             "parallel write isolation requires caller-managed worktrees",
         )

@@ -5,3 +5,6 @@ adapters/claude/templates/** text eol=lf
 templates/agents/*.md text eol=lf
 templates/claude-md.orchestration.md text eol=lf
 templates/settings.snippet.json text eol=lf
+
+# Codex custom-agent and orchestration goldens are byte-sensitive.
+adapters/codex/templates/** text eol=lf

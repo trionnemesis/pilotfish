@@ -10,6 +10,32 @@
 
 **Downstream 版本：** `1.2.0-trionnemesis.1` 將 upstream v1.2.0 中相容的控制選擇性對應到這個 fork 的 deterministic router、七角色 registry、append-only ledger，以及 Claude／Codex adapter contracts。這是 trionnemesis 的 downstream release line，不是 upstream 專案的官方 `v1.2.0` release。
 
+**所有權與來源標示：** 本 repo 是
+[Nanako0129/pilotfish](https://github.com/Nanako0129/pilotfish) 的獨立維護
+MIT 衍生版本。原作者著作權與完整 MIT permission notice 保留在
+[LICENSE](./LICENSE)；trionnemesis 維護 downstream routing core、adapter、
+tests 與 release line。「獨立」代表維護與產品方向，不表示 upstream
+內容是由 downstream 從零原創。
+
+### Claude Code ↔ Codex adapter 矩陣
+
+Canonical router 與七個 leaf-role contracts 維持 vendor-neutral；每個
+adapter 只會把意圖編譯成 target 真正能表達的控制：
+
+| Contract surface | Claude Code adapter | 本 branch 的 Codex adapter |
+|---|---|---|
+| 主政策 | 整合到 `~/.claude/CLAUDE.md` 的 marker block | 供 `AGENTS.md` 整合的 marker block |
+| Leaf roles | 七個 `agents/*.md` definitions | 七個 Codex 原生 custom-agent TOML definitions |
+| 模型綁定 | agent frontmatter 內的 Claude aliases | 原生 `model` + `model_reasoning_effort` |
+| 唯讀角色 | positive tools 加上 denied write tools | 原生 `sandbox_mode = "read-only"`；positive tool lists 仍是 prompt guidance |
+| 禁止子委派 | 禁用 Claude agent／workflow tools | prompt guidance；不宣稱 Codex `agents.max_depth`，因為 multi-agent V2 會忽略它 |
+| Capability 證據 | compiler report + runtime checks | 隔離的 CLI／config probe + capability report |
+| 安裝／回滾 | 已有 fingerprint-approved installer | 目前只到 compiler preview；Codex installer／rollback backend 尚未發布 |
+
+所以 Codex compiler 已經是實質的 downstream 產品方向，但目前還不應宣稱
+是一鍵可安裝的 Codex release。精確的 verified／degraded 邊界請見
+[adapter capability discovery](./docs/adapter-capabilities.md)。
+
 [English README](./README.md)
 
 ## 目錄
@@ -216,3 +242,7 @@ Show the exact dry-run plan and do not write until I approve that plan's fingerp
 ## 授權
 
 [MIT](./LICENSE)
+
+本專案衍生自
+[Nanako0129/pilotfish](https://github.com/Nanako0129/pilotfish)，原作者著作權
+與完整 MIT permission notice 均保留於授權檔。

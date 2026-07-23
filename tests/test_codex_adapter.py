@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -53,6 +54,15 @@ RECORDED_FEATURES = """fast_mode experimental false
 multi_agent stable true
 """
 RECORDED_CONFIG_LOAD = "generated agent config accepted\n"
+CODEX_ROLE_MAP = {
+    "scout": ("gpt-5.6-terra", "low", "read-only"),
+    "Explore": ("gpt-5.6-terra", "low", "read-only"),
+    "mech-executor": ("gpt-5.6-luna", "low", None),
+    "executor": ("gpt-5.6-terra", "high", None),
+    "senior-executor": ("gpt-5.6-sol", "high", None),
+    "verifier": ("gpt-5.6-sol", "medium", "read-only"),
+    "security-executor": ("gpt-5.6-sol", "high", None),
+}
 
 FAKE_CODEX = r'''
 import json
@@ -138,6 +148,12 @@ class CodexProbeTests(unittest.TestCase):
         )
         self.assertEqual(
             probe.capability_map()["runtime_model_observation"], "unsupported"
+        )
+        self.assertEqual(
+            probe.capability_map()["child_spawn_control"], "degraded"
+        )
+        self.assertTrue(
+            any("no-spawn" in warning for warning in probe.warnings)
         )
 
     def test_exact_five_incompatible_classes_fail_closed(self) -> None:
@@ -287,12 +303,78 @@ class CodexCompilerTests(unittest.TestCase):
         self.assertEqual(
             [item.relative_path for item in first.emitted_files()],
             [
-                "codex-policy.md",
+                "agents/scout.toml",
+                "agents/Explore.toml",
+                "agents/mech-executor.toml",
+                "agents/executor.toml",
+                "agents/senior-executor.toml",
+                "agents/verifier.toml",
+                "agents/security-executor.toml",
+                "AGENTS.orchestration.md",
                 "invocation-policy.json",
                 "verifier-output.schema.json",
                 "capability-report.json",
             ],
         )
+
+    def test_native_agents_parse_and_match_reviewed_role_map(self) -> None:
+        compilation = compile_codex(probe=self.probe)
+        agents = {
+            item.relative_path.removeprefix("agents/").removesuffix(".toml"): tomllib.loads(
+                item.text()
+            )
+            for item in compilation.artifacts
+            if item.relative_path.startswith("agents/")
+        }
+        self.assertEqual(tuple(agents), tuple(CODEX_ROLE_MAP))
+        self.assertNotIn("orchestrator", agents)
+        for name, (model, effort, sandbox) in CODEX_ROLE_MAP.items():
+            with self.subTest(name=name):
+                document = agents[name]
+                self.assertEqual(document["name"], name)
+                self.assertTrue(document["description"].strip())
+                self.assertTrue(document["developer_instructions"].strip())
+                self.assertIn("Do not spawn", document["developer_instructions"])
+                self.assertEqual(document["model"], model)
+                self.assertEqual(document["model_reasoning_effort"], effort)
+                self.assertEqual(document.get("sandbox_mode"), sandbox)
+                self.assertNotIn("agents", document)
+
+    def test_native_agents_and_policy_match_checked_in_golden_bytes(self) -> None:
+        compilation = compile_codex(probe=self.probe)
+        for item in compilation.artifacts:
+            if not (
+                item.relative_path.startswith("agents/")
+                or item.relative_path == "AGENTS.orchestration.md"
+            ):
+                continue
+            with self.subTest(path=item.relative_path):
+                golden = ROOT / "adapters" / "codex" / "templates" / item.relative_path
+                self.assertEqual(item.content, golden.read_bytes())
+
+    def test_native_text_artifacts_are_lf_deterministic_and_safe(self) -> None:
+        compilation = compile_codex(probe=self.probe)
+        forbidden = (
+            "dangerously-bypass",
+            "bypass-hook-trust",
+            "api_key",
+            "auth.json",
+            "mcp_servers",
+            "glpat-",
+            "github_pat_",
+        )
+        for item in compilation.artifacts:
+            if item.relative_path.endswith((".toml", ".md")):
+                text = item.text()
+                self.assertNotIn("\r", text)
+                self.assertTrue(text.endswith("\n"))
+                for marker in forbidden:
+                    self.assertNotIn(marker, text.casefold(), item.relative_path)
+        self.assertNotIn("gpt-5.6", (ROOT / "routing.yaml").read_text(encoding="utf-8"))
+
+    def test_native_goldens_are_lf_pinned(self) -> None:
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("adapters/codex/templates/** text eol=lf", attributes)
 
     def test_generic_adapter_dispatches_to_codex(self) -> None:
         with mock.patch(
@@ -317,10 +399,24 @@ class CodexCompilerTests(unittest.TestCase):
         )
         self.assertIn("--output-schema", policy["verifier_arguments"])
         self.assertNotIn("--model", policy["default_arguments"])
-        self.assertIsNone(policy["role_enforcement"]["model_alias_mapping"])
+        self.assertEqual(
+            policy["role_enforcement"]["model_binding"], "native_custom_agent"
+        )
+        self.assertEqual(
+            policy["role_enforcement"]["write_role_sandbox"], "inherited"
+        )
+        self.assertEqual(
+            policy["role_enforcement"]["positive_tool_allowlists"],
+            "prompt_guidance",
+        )
+        self.assertEqual(
+            policy["role_enforcement"]["child_spawn_control"],
+            "prompt_guidance",
+        )
         self.assertEqual(
             policy["attestation"]["runtime_model_observation"], "UNKNOWN"
         )
+        self.assertEqual(policy["attestation"]["account_availability"], "UNKNOWN")
 
         unavailable = probe_from_outputs(
             version_output="",
@@ -342,11 +438,22 @@ class CodexCompilerTests(unittest.TestCase):
         self.assertEqual(unavailable_policy["verified_controls"], {})
 
     def test_policy_labels_role_controls_as_prompt_only(self) -> None:
-        policy = compile_codex(probe=self.probe).artifacts[0].text()
-        self.assertIn("prompt-level", policy)
-        self.assertIn("not a Codex model ID", policy)
+        policy = next(
+            item.text()
+            for item in compile_codex(probe=self.probe).artifacts
+            if item.relative_path == "AGENTS.orchestration.md"
+        )
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        self.assertIn(f"pilotfish v{version}", policy)
+        self.assertIn("native controls", policy)
+        self.assertIn("prompt guidance", policy)
+        self.assertIn("executable canonical router", policy)
+        self.assertIn("dispatch eligibility brake", policy)
+        self.assertIn("no-downgrade", policy)
+        self.assertIn("fresh-context verifier", policy)
+        self.assertIn("multi-agent V2", policy)
         self.assertIn("### security-executor", policy)
-        self.assertNotIn("--model opus", policy)
+        self.assertNotIn("gpt-5.6", policy)
 
     def test_strict_mode_accepts_only_supported_required_capabilities(self) -> None:
         supported = [
@@ -402,6 +509,11 @@ class CodexCompilerTests(unittest.TestCase):
         self.assertTrue(report["probe"]["config_load"])
         self.assertEqual(report["target_configuration"], "unknown")
         self.assertEqual(report["future_project_overrides"], "unknown")
+        self.assertEqual(report["runtime"]["model_availability"], "UNKNOWN")
+        self.assertEqual(report["runtime"]["account_availability"], "UNKNOWN")
+        self.assertEqual(
+            report["role_mappings"]["mech-executor"]["model"], "gpt-5.6-luna"
+        )
         for command in report["probe"]["commands"]:
             self.assertRegex(command["stdout_sha256"], r"^[0-9a-f]{64}$")
 
